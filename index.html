@@ -5002,11 +5002,11 @@ function rebuildChassisMesh(){
   currentWheelDefs.forEach(function(w){ maxA = Math.max(maxA, Math.abs(w.a)); });
   var tireHalf = Math.max(0.08, (vehicle.tireWidthMm||215)/2000);
   var R0v = Math.max(0.18, coefs.R0 || 0.315);
-  var ovh = { hatch:0.55, sport:0.62, hyper:0.70, truck:0.60 }[cls] || 0.55;
+  var ovh = { hatch:0.55, sport:0.62, hyper:0.74, truck:0.60 }[cls] || 0.55;
   var bodyL = 2*maxA + 2*ovh;
   var bodyW = Math.max(0.5, vehicle.track + tireHalf*1.1);
-  var H = { hatch:{slab:0.52, cab:0.50}, sport:{slab:0.42, cab:0.38},
-            hyper:{slab:0.34, cab:0.32}, truck:{slab:1.00, cab:0.62} }[cls] || { slab:0.5, cab:0.45 };
+  var H = { hatch:{slab:0.52, cab:0.58}, sport:{slab:0.42, cab:0.36},
+            hyper:{slab:0.30, cab:0.28}, truck:{slab:1.00, cab:0.62} }[cls] || { slab:0.5, cab:0.45 };
   var bodyH = H.slab;
   var y0 = Math.max(0.16, R0v*0.55);         // altura libre al suelo
   var topY = y0 + bodyH;
@@ -5041,9 +5041,9 @@ function rebuildChassisMesh(){
   // === CABINA: tronco de pirámide (laterales y parabrisas inclinados) ===
   var cabH = H.cab;
   var cabW = bodyW * (cls === 'truck' ? 0.92 : 0.80);
-  var cabL = prof.cabLen * bodyL * (cls === 'truck' ? 1 : 1.15);
+  var cabL = prof.cabLen * bodyL * (cls === 'truck' ? 1 : (cls === 'hatch' ? 1.3 : 1.1));
   var cabZ = prof.cabOff * bodyL + (cls === 'truck' ? 0 : 0.0);
-  var topK = cls === 'truck' ? 0.92 : (cls === 'hatch' ? 0.80 : 0.68);
+  var topK = cls === 'truck' ? 0.92 : (cls === 'hatch' ? 0.88 : (cls === 'hyper' ? 0.6 : 0.68));
   var cabGeo = new THREE.CylinderGeometry(0.5*Math.SQRT2*topK, 0.5*Math.SQRT2, cabH, 4);
   cabGeo.rotateY(Math.PI/4);
   var cab = new THREE.Mesh(cabGeo, matGlass);
