@@ -727,6 +727,25 @@ body:has(#btnThrottle.btn-anchored) #hud {
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
   transform-origin: bottom right;
 }
+
+/* Inicio rápido */
+#quickStart{margin:12px 14px 0;padding:14px;background:var(--bg-secondary);border:1px solid var(--border-color);border-radius:var(--radius);}
+#quickStart .qs-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+#quickStart .qs-title{font-size:15px;font-weight:700;letter-spacing:.2px;}
+#quickStart .qs-label{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-secondary);margin:12px 0 6px;}
+#quickStart .qs-cars{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+@media(min-width:720px){#quickStart .qs-cars{grid-template-columns:repeat(4,1fr);}}
+#quickStart .qs-car{display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:8px 8px 10px;text-align:left;line-height:1.3;min-height:44px;}
+#quickStart .qs-car svg{width:100%;height:46px;margin-bottom:4px;}
+#quickStart .qs-car .qs-name{font-size:13px;font-weight:700;}
+#quickStart .qs-car .qs-meta{font-size:11px;font-weight:400;color:var(--text-secondary);}
+#quickStart .qs-chips{display:flex;flex-wrap:wrap;gap:6px;}
+#quickStart .qs-chip{padding:9px 12px;min-height:44px;}
+#quickStart [aria-pressed="true"]{outline:2px solid var(--accent);outline-offset:-2px;background:var(--accent-glow);}
+#quickStart .qs-go{width:100%;padding:14px;font-size:15px;margin-top:14px;}
+#quickStart .qs-sum{font-size:12px;color:var(--text-secondary);margin-top:8px;min-height:16px;}
+#quickStart .qs-adv{margin-top:8px;width:100%;}
+#quickStart.qs-collapsed .qs-body{display:none;}
 </style>
 </head>
 <body>
@@ -753,6 +772,8 @@ body:has(#btnThrottle.btn-anchored) #hud {
       <button class="btn btn-secondary" id="btnVoice" style="padding:6px 10px;" title="Comando por voz (una frase por pulsación)">🎤 Voz</button>
     </div>
   </header>
+
+  <section id="quickStart" aria-label="Inicio rápido"></section>
 
   <div id="levelSelector" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; padding:14px; background:var(--bg-secondary); border-bottom:1px solid var(--border-color);">
     <button type="button" class="btn btn-secondary level-card" id="btnLevelDrive" aria-pressed="true" style="padding:14px; text-align:left; line-height:1.35;">
@@ -1056,8 +1077,8 @@ body:has(#btnThrottle.btn-anchored) #hud {
         </div>
         <div class="cg level-adjust"><label for="vSteerMax">Ángulo máx. dirección <span class="v" id="valSteerMax">30</span>°</label>
           <input type="range" id="vSteerMax" min="10" max="45" value="30" step="1"></div>
-        <div class="cg level-adjust"><label for="vRearF">Factor α ejes no dir. <span class="v" id="valRearF">0.60</span></label>
-          <input type="range" id="vRearF" min="0" max="1.2" value="0.60" step="0.05"></div>
+        <div class="cg level-adjust"><label for="vRearF">Factor α ejes no dir. <span class="v" id="valRearF">1.00</span></label>
+          <input type="range" id="vRearF" min="0" max="1.2" value="1.00" step="0.05"></div>
         <div class="cg level-adjust"><label for="vDrivetrain">Tren motriz</label>
           <select id="vDrivetrain">
             <option value="REAR">Eje(s) trasero(s)</option>
@@ -1090,6 +1111,10 @@ body:has(#btnThrottle.btn-anchored) #hud {
               <div style="font-weight:600; font-size:13px;">🚀 Superdeportivo</div>
               <div style="font-size:11px; color:var(--text-secondary);">~415 kW · 1450 kg</div>
             </button>
+            <button type="button" class="btn btn-secondary car-preset-card" id="btnCarF1" style="padding:14px 10px; text-align:left; line-height:1.3;">
+              <div style="font-weight:600; font-size:13px;">🏁 Fórmula 1</div>
+              <div style="font-size:11px; color:var(--text-secondary);">~650 kW · 800 kg · slicks</div>
+            </button>
           </div>
         </div>
         <div class="cg" style="display:none;"><label for="vCarClass">Preset de clase de coche</label>
@@ -1098,6 +1123,7 @@ body:has(#btnThrottle.btn-anchored) #hud {
             <option value="hatch">Hatch deportivo (~165 kW, 1300 kg)</option>
             <option value="sport">Deportivo (~300 kW, 1450 kg)</option>
             <option value="hyper">Superdeportivo (~415 kW, 1450 kg)</option>
+            <option value="f1">Fórmula 1 (~650 kW, 800 kg)</option>
           </select>
         </div>
         <div class="cg"><label for="vEngType">Tipo de motor</label>
@@ -1111,9 +1137,9 @@ body:has(#btnThrottle.btn-anchored) #hud {
           </select>
         </div>
         <div class="cg"><label for="vTmax">Motor Tmáx (combustión) <span class="v" id="valTmax">220</span> N·m</label>
-          <input type="range" id="vTmax" min="60" max="900" value="220" step="10"></div>
+          <input type="range" id="vTmax" min="60" max="1200" value="220" step="10"></div>
         <div class="cg level-adjust"><label for="vRedline">Redline <span class="v" id="valRedline">6500</span> rpm</label>
-          <input type="range" id="vRedline" min="3500" max="9000" value="6500" step="100"></div>
+          <input type="range" id="vRedline" min="3500" max="13000" value="6500" step="100"></div>
         <div class="cg level-adjust"><label for="vIdle">Ralentí <span class="v" id="valIdle">850</span> rpm</label>
           <input type="range" id="vIdle" min="500" max="1200" value="850" step="10"></div>
         <div class="cg level-lab"><label for="vDisp">Cilindrada <span class="v" id="valDisp">2.0</span> L</label>
@@ -1178,6 +1204,8 @@ body:has(#btnThrottle.btn-anchored) #hud {
           </div>
           <div class="cg" style="margin-bottom:6px;"><label for="vTrackWidth">Ancho de pista <span class="v" id="valTrackWidth">10</span> m</label>
             <input type="range" id="vTrackWidth" min="5" max="20" value="10" step="1"></div>
+          <div class="cg" style="margin-bottom:6px;"><label for="chkRacingLine" style="display:flex;align-items:center;gap:8px;">
+            <input type="checkbox" id="chkRacingLine" checked style="width:auto;"> Línea de trazada (guía: verde rápido · amarillo curva · rojo frenar)</label></div>
           <div class="btn-row three" style="margin-bottom:6px;">
             <button class="btn btn-secondary" id="btnTrackOval">Óvalo peraltado</button>
             <button class="btn btn-secondary" id="btnTrackHill">Puerto de montaña</button>
@@ -1231,11 +1259,11 @@ body:has(#btnThrottle.btn-anchored) #hud {
         <div class="cg level-adjust"><label for="vTamb">T ambiente <span class="v" id="valTamb">25</span>°C</label>
           <input type="range" id="vTamb" min="-10" max="45" value="25" step="1"></div>
         <div class="cg level-adjust"><label for="vCd">Cd aero <span class="v" id="valCd">0.32</span></label>
-          <input type="range" id="vCd" min="0.20" max="0.80" value="0.32" step="0.01"></div>
+          <input type="range" id="vCd" min="0.20" max="1.10" value="0.32" step="0.01"></div>
         <div class="cg level-adjust"><label for="vArea">Área frontal <span class="v" id="valArea">2.2</span> m²</label>
-          <input type="range" id="vArea" min="1.5" max="4.0" value="2.2" step="0.1"></div>
+          <input type="range" id="vArea" min="1.0" max="4.0" value="2.2" step="0.1"></div>
         <div class="cg level-adjust"><label for="vDF">Downforce <span class="v" id="valDF">100</span>%</label>
-          <input type="range" id="vDF" min="0" max="250" value="100" step="5"></div>
+          <input type="range" id="vDF" min="0" max="400" value="100" step="5"></div>
         <div class="cg level-lab"><label for="vAeroBalF">Reparto aero delantero <span class="v" id="valAeroBalF">40</span>%</label>
           <input type="range" id="vAeroBalF" min="10" max="70" value="40" step="1"></div>
         <div class="cg level-lab"><label for="vGroundEffect">Efecto suelo <span class="v" id="valGroundEffect">30</span>%</label>
@@ -1393,6 +1421,8 @@ body:has(#btnThrottle.btn-anchored) #hud {
       <button class="btn btn-danger" id="btnColTest" style="padding:10px;">💥 Test choque</button>
       <button class="btn btn-success" id="btnAdasTest" style="padding:10px;">ADAS test</button>
       <button class="btn btn-secondary" id="btnScreenshot" style="padding:10px;">📷 Captura de pantalla</button>
+      <button class="btn btn-primary" id="btnTelemetryCsv" style="padding:10px;">📈 Telemetría CSV</button>
+      <button class="btn btn-secondary" id="btnTelemetryClear" style="padding:10px;">🗑️ Borrar telemetría</button>
       <button class="btn btn-danger" id="btnRecordLap" style="padding:10px;">🔴 Grabar vuelta</button>
       <button class="btn btn-success" id="btnPlayLap" style="padding:10px;">▶ Reproducir</button>
       <button class="btn btn-secondary" id="btnStopLap" style="padding:10px;">⏹ Parar</button>
@@ -2165,7 +2195,7 @@ var vehicle = {
   mass: 1200, wheelbase: 2.60, track: 1.50, cgHeight: 0.50,
   frontWeightPct: 50, Iz: 1500,
   susK: 35000, susZeta: 0.65,
-  steerMaxDeg: 30, rearAlphaFactor: 0.60,
+  steerMaxDeg: 30, rearAlphaFactor: 1.00,
   drivetrain: 'REAR',
   numWheels: 4,
   rimDiameterIn: 17, tireWidthMm: 215, profilePct: 45,
@@ -2572,7 +2602,8 @@ class TrackSystem {
         const angleAtS = angleStart + seg.dir*dAngle;
         const px=c.cx+Math.sin(angleAtS)*seg.radius, pz=c.cz+Math.cos(angleAtS)*seg.radius;
         const distToC = Math.hypot(dx,dz);
-        const lateral = -seg.dir*(seg.radius-distToC);
+        // Mismo signo que recta y clotoide: positivo hacia la normal (cos ψ, −sin ψ) del rumbo de la pista.
+        const lateral = seg.dir*(seg.radius-distToC);
         proj = { s: seg.s0+sLocal, lateral, dist: Math.hypot(x-px,z-pz), seg, px, pz };
       }
       if (proj.dist < bestDist) { bestDist = proj.dist; best = proj; }
@@ -3049,7 +3080,7 @@ function buildTrackMinimapCache(w, h){
   var n = 80;
   var pts = [];
   for (var i=0;i<=n;i++){
-    var s = (i/n) * TRACK.totalLength;
+    var s = (i/n) * TRACK.totalLength; s = Math.min(s, TRACK.totalLength - 0.001);   // en totalLength pointAtS envuelve al inicio (franja diagonal en pistas abiertas)
     var p = TRACK.pointAtS(s);
     pts.push(p);
   }
@@ -3291,10 +3322,22 @@ function applyADAS(dt){
     // coche oscilaba con amplitud creciente (de ±2 m a >15 m).
     var Lw = Math.max(1, vehicle.wheelbase || 2.6), vL = Math.max(5, v);
     var psiW = Math.atan2(Math.sin(chassis.psi||0), Math.cos(chassis.psi||0));
+    var latErr = chassis.x || 0, ffSteer = 0;
+    // Con circuito cargado, el objetivo es el eje de la pista, no el origen del
+    // mundo: error lateral = lateral de la proyección, error de rumbo = ψ −
+    // rumbo de la pista en ese punto, y avance directo L·κ para las curvas.
+    if (TRACK.segs.length && chassis._trackProj){
+      var tpj = chassis._trackProj;
+      var tH = TRACK.pointAtS(Math.min(tpj.s, TRACK.totalLength - 0.001)).heading;
+      psiW = Math.atan2(Math.sin((chassis.psi||0) - tH), Math.cos((chassis.psi||0) - tH));
+      latErr = tpj.lateral;
+      var tSt = TRACK.stateAt(tpj.s);
+      if (tSt) ffSteer = Lw * tSt.curvature * ((vehicle.lkaGain||0.7) / 0.7);
+    }
     var k1 = 2 * 0.9 * 1.0 * Lw / vL, k2 = 1.0 * Lw / (vL * vL);
-    var corr = -((vehicle.lkaGain||0.7) / 0.7) * (k1 * psiW + k2 * (chassis.x||0));
+    var corr = -((vehicle.lkaGain||0.7) / 0.7) * (k1 * psiW + k2 * latErr);
     var vibe = 0.008 * (vehicle.lkaGain||0.7) * Math.sin(performance.now()*0.04);
-    controls.steerTarget += Math.max(-0.14, Math.min(0.14, corr + vibe));
+    controls.steerTarget += ffSteer + Math.max(-0.14, Math.min(0.14, corr + vibe));
   }
 }
 
@@ -3557,7 +3600,7 @@ function trackEdgeState(){
 /* Dirección unitaria que va del punto más cercano del eje de pista hacia el
    coche (hacia FUERA). Vale para recta, curva y clotoide. La barrera empuja
    en sentido contrario. Antes se derivaba del signo de 'lateral', que en las
-   curvas a derechas (dir=-1) está invertido y la barrera empujaba hacia fuera. */
+   curvas estaba invertido respecto a recta/clotoide (ya corregido) y la barrera empujaba hacia fuera. */
 function trackOutwardDir(carX, carZ, projPx, projPz){
   var dx = carX - projPx, dz = carZ - projPz;
   var d = Math.hypot(dx, dz);
@@ -3697,8 +3740,7 @@ function applyControlLogic(subDt){
   }
   chassis._eps = assist;
 }
-/* Compatibilidad: llamada de una sola vez (ya no la usa el bucle de física). */
-function readControls(dt){ readRawInput(dt); applyControlLogic(dt); }
+/* (readControls eliminada: nadie la llamaba y ejecutarla fuera del bucle de subpasos duplicaría applyControlLogic.) */
 
 /* ===== EXTENDED VEHICLE DYNAMICS (lumped) ===== */
 /* ============================================================
@@ -3966,6 +4008,7 @@ function stepVehicle(dt){
     return;
   }
   var _physOut = stepVehiclePhysics(dt);
+  if (typeof DriveLog !== 'undefined') DriveLog.tick(dt, _physOut);
   var results = _physOut.results, kappasOut = _physOut.kappasOut, fzOut = _physOut.fzOut;
   var v = Math.sqrt(chassis.u*chassis.u + chassis.w*chassis.w);
   currentWheelDefs.forEach(function(w){
@@ -4133,6 +4176,21 @@ function stepVehiclePhysics(dt){
       }
       FzMap[w.id] = Math.max(40, FzSpring[w.id] + (Farb[w.id]||0) + fFlex);
     });
+    // Aerodinámica ANTES del bucle de ruedas: la carga aerodinámica tiene que
+    // sumarse a Fz antes de calcular las fuerzas del neumático. Antes se sumaba
+    // después del bucle (FzMap ya usado), así que la carga aero no llegaba nunca
+    // al neumático ni al balanceo de la suspensión: solo contaba la resistencia.
+    var aero = new AeroModel(vehicle).compute(chassis.u, chassis.w, chassis.zS, chassis._axG, chassis._ayG);
+    var aeroShare = {};
+    (function(){
+      var nW0 = Math.max(1, currentWheelDefs.length);
+      currentWheelDefs.forEach(function(w){
+        var share = (w.a > 0 ? aero.FzFront : aero.FzRear) / (nW0/2);
+        share *= (1 + ((w.b > 0) ? aero.rollShift : -aero.rollShift));
+        aeroShare[w.id] = share;
+        FzMap[w.id] = (FzMap[w.id]||0) + share;
+      });
+    })();
 
     var drivenIds = [];
     currentWheelDefs.forEach(function(w){
@@ -4347,12 +4405,14 @@ function stepVehiclePhysics(dt){
       }
       // TCS: slip de tracción
       var driveSlip = Math.max(0, slipLong);
-      if ((vehicle.tcsGain||0) > 0.05 && thrCmd > 0.05 && driveSlip > 0.08 && Math.abs(vxW) > 0.8){
+      // A coche casi parado el slip relativo se satura y la rueda podía embalarse sin control
+      // (con 415 kW la rueda giraba a 60 km/h con el coche a 6): también actúa si la rueda va rápida.
+      if ((vehicle.tcsGain||0) > 0.05 && thrCmd > 0.05 && driveSlip > 0.08 && (Math.abs(vxW) > 0.8 || vRoll > 1.5)){
         var tc = getWheelCtl(w.id).tcs;
         tc.active = true; tcsCtl.active = true;
         var errT = driveSlip - (vehicle.tcsLimit||0.12);
-        tc.integral = Math.max(-0.3, Math.min(0.3, tc.integral + errT * subDt));
-        tc.cut = Math.max(0, Math.min(0.85, (vehicle.tcsGain||3) * errT + tc.integral * 0.3));
+        tc.integral = Math.max(-0.3, Math.min(0.5, tc.integral + errT * 4 * subDt));
+        tc.cut = Math.max(0, Math.min(1, (vehicle.tcsGain||3) * 3 * errT + tc.integral * 1.0));
       } else {
         var tc0 = getWheelCtl(w.id).tcs;
         tc0.active = false;
@@ -4374,7 +4434,7 @@ function stepVehiclePhysics(dt){
       var Tbr = computeBrakeTorque(brakeCmd, TbrakeMax, regen, om, isFrontWheel);
       var Td = Tdrive[w.id] || 0;
       var tcNow = getWheelCtl(w.id).tcs;
-      if (tcNow.active) Td *= (1 - tcNow.cut * 0.85);
+      if (tcNow.active) Td *= (1 - tcNow.cut * 0.97);   // antes máx. 72 % de recorte: no bastaba con coches potentes
       var omDot = (Td + Tbr - My - r.Fx * R0) / (driveAxles[w.axle] ? IwDrive : Iw);
       om += omDot * subDt;
       if (controls.brake > 0.85 && Math.abs(uLocal) < 0.25 && (vehicle.absGain||0) < 0.05)
@@ -4389,9 +4449,12 @@ function stepVehiclePhysics(dt){
       var by = r.Fx * sSt + r.Fy * cSt;
       FxTotal += bx; FyTotal += by;
       MzTotal += w.a*by - w.b*bx + r.Mz;
-      FzSum += Fz;
-      MpitchF += Fz * w.a;
-      MrollF += Fz * w.b;
+      // La carga aero va directa al neumático: no sostiene ni cabecea el chasis
+      // por los muelles, así que se excluye de la suma de la dinámica del chasis.
+      var FzBody = Fz - (aeroShare[w.id] || 0);
+      FzSum += FzBody;
+      MpitchF += FzBody * w.a;
+      MrollF += FzBody * w.b;
       results[w.id]=r; kappasOut[w.id]=kappa; fzOut[w.id]=Fz; omegaOut[w.id]=om;
     });
 
@@ -4401,20 +4464,9 @@ function stepVehiclePhysics(dt){
     currentWheelDefs.forEach(function(w){ var st=bristle[w.id]; if(st){ tSum+=st.T||25; wSum+=st.wear||0; tN++; } });
     chassis._tireT = tN ? tSum/tN : (vehicle.ambientTemp||25);
     chassis._tireWear = tN ? wSum/tN : 0;
-    var aero = new AeroModel(vehicle).compute(chassis.u, chassis.w, chassis.zS, chassis._axG, chassis._ayG);
     FxTotal -= aero.Fdrag;
     chassis._aeroN = aero.FaeroZ;
     chassis._dragN = aero.Fdrag;
-    var FzFront = aero.FzFront, FzRear = aero.FzRear, rollShift = aero.rollShift;
-
-    var nW = Math.max(1, currentWheelDefs.length);
-    currentWheelDefs.forEach(function(w){
-      var isFront = w.a > 0;
-      var isLeft = w.b > 0;
-      var share = (isFront ? FzFront : FzRear) / (nW/2);
-      share *= (1 + (isLeft ? rollShift : -rollShift));
-      FzMap[w.id] = (FzMap[w.id]||0) + share;
-    });
 
     var m = vehicle.mass;
     // Ladera fija al mundo (+Z / +X). Se proyecta al chasis con ψ; no gira con el morro.
@@ -4499,7 +4551,7 @@ function stepVehiclePhysics(dt){
     chassis.w += dw*subDt;
     chassis.r += dr*subDt;
     chassis.r = Math.max(-12, Math.min(12, chassis.r));
-    chassis.u = Math.max(-80, Math.min(80, chassis.u));
+    chassis.u = Math.max(-120, Math.min(120, chassis.u));   // 432 km/h: seguridad numérica, ya no recorta a un monoplaza (antes 80 m/s = 288 km/h)
     chassis.w = Math.max(-40, Math.min(40, chassis.w));
     chassis.psi += chassis.r*subDt;
     chassis._distTraveled = (chassis._distTraveled||0) + chassis.u*subDt;
@@ -4673,7 +4725,7 @@ function vehicleBodyGeom(){
   // deportivo" salía como sport y "Deportivo" como hyper: dos presets con la
   // misma silueta).
   var forcedOk = vehicle._bodyClass && vehicle._bodyClassSig === (vehicle.mass + '|' + vehicle.engTmax);
-  if (forcedOk && (vehicle._bodyClass === 'hatch' || vehicle._bodyClass === 'sport' || vehicle._bodyClass === 'hyper' || vehicle._bodyClass === 'truck')) cls = vehicle._bodyClass;
+  if (forcedOk && (vehicle._bodyClass === 'hatch' || vehicle._bodyClass === 'sport' || vehicle._bodyClass === 'hyper' || vehicle._bodyClass === 'truck' || vehicle._bodyClass === 'f1')) cls = vehicle._bodyClass;
   else if (isTruck) cls = 'truck';
   else if (isHyper) cls = 'hyper';
   else if (isSport) cls = 'sport';
@@ -4685,8 +4737,11 @@ function vehicleBodyGeom(){
     hatch: { bodyH:0.85, cabLen:0.55, cabH:0.72, cabOff:-0.06, noseTaper:0.05, wing:false, spoiler:false },
     sport: { bodyH:0.60, cabLen:0.42, cabH:0.55, cabOff:-0.14, noseTaper:0.22, wing:false, spoiler:true  },
     hyper: { bodyH:0.50, cabLen:0.32, cabH:0.46, cabOff:-0.18, noseTaper:0.32, wing:true,  spoiler:false },
-    truck: { bodyH:1.65, cabLen:0.28, cabH:0.55, cabOff: 0.28, noseTaper:0.00, wing:false, spoiler:false }
+    truck: { bodyH:1.65, cabLen:0.28, cabH:0.55, cabOff: 0.28, noseTaper:0.00, wing:false, spoiler:false },
+    f1:    { bodyH:0.30, cabLen:0.20, cabH:0.20, cabOff: 0.00, noseTaper:0.30, wing:true,  spoiler:false }
   };
+  // Monoplaza: el morro y la cola salen mucho de los ejes (para el choque y la sombra)
+  if (cls === 'f1') bodyL = Math.max(0.7, wb * 1.45);
 
   return {
     bodyL: bodyL,
@@ -4701,6 +4756,7 @@ function vehicleBodyGeom(){
 }
 function resetVehicle(opts){
   opts = opts || {};
+  if (typeof DriveLog !== 'undefined') DriveLog.clear();
   chassis.x=0; chassis.z=0; chassis.psi=0; chassis.u=0; chassis.w=0; chassis.r=0;
   chassis._axG=0; chassis._ayG=0;
   chassis.zS=0; chassis.theta=0; chassis.phi=0;
@@ -4991,6 +5047,7 @@ function makeWheelMesh4w(){
 function chassisBodyColor(){
   var cls = vehicleBodyGeom().cls;
   if (cls === 'truck') return 0x7c8a99;
+  if (cls === 'f1') return 0x00a19b;
   if (cls === 'hyper') return 0xc4472f;
   if (cls === 'sport') return 0xe8a54b;
   return 0x2a4a6e;
@@ -5039,11 +5096,11 @@ function rebuildChassisMesh(){
   var archR = R0v + 0.06 + BV;
   var topY = Math.max(y0 + slab, R0v + archR + 0.04);
   var cabH = { hatch:0.58, sport:0.40, hyper:0.32, truck:0.62 }[cls] || 0.45;
-  var cabL = bodyL * ({ hatch:0.46, sport:0.38, hyper:0.36, truck:0.26 }[cls] || 0.4);
-  var cabC = { hatch:-0.04, sport:-0.08, hyper:-0.03, truck:0.26 }[cls] || 0;
+  var cabL = bodyL * ({ hatch:0.50, sport:0.38, hyper:0.36, truck:0.26 }[cls] || 0.4);
+  var cabC = { hatch:-0.07, sport:-0.08, hyper:-0.03, truck:0.26 }[cls] || 0;
   var cabZ = cabC * bodyL + (halfF - halfR)/2;
   var rakeF = { hatch:0.28, sport:0.34, hyper:0.42, truck:0.10 }[cls] || 0.3;
-  var rakeR = { hatch:0.08, sport:0.34, hyper:0.30, truck:0.02 }[cls] || 0.2;
+  var rakeR = { hatch:0.34, sport:0.34, hyper:0.30, truck:0.02 }[cls] || 0.2;
   var hoodDrop = { hatch:0.10, sport:0.17, hyper:0.22, truck:0.0 }[cls] || 0.1;
   var deckDrop = { hatch:0.02, sport:0.06, hyper:0.10, truck:0.0 }[cls] || 0.03;
 
@@ -5056,7 +5113,7 @@ function rebuildChassisMesh(){
 
   // Extruye un perfil lateral (x = z mundo hacia delante, y = altura) a lo
   // ancho 'w', con bordes redondeados 'bev'. Devuelve la geometría centrada.
-  function sideExtrude(shape, w, bev, segs){
+  function sideExtrude(shape, w, bev, segs, deform){
     var depth = Math.max(0.02, w - 2*bev);
     var g = new THREE.ExtrudeGeometry(shape, {
       depth: depth, bevelEnabled: true, bevelThickness: bev, bevelSize: bev,
@@ -5064,7 +5121,157 @@ function rebuildChassisMesh(){
     });
     g.translate(0, 0, -depth/2);
     g.rotateY(-Math.PI/2);      // x(perfil) -> z mundo, z(extrusión) -> x mundo
+    if (deform){
+      var pa = g.attributes.position;
+      for (var vi = 0; vi < pa.count; vi++){
+        var q = deform(pa.getX(vi), pa.getY(vi), pa.getZ(vi));
+        pa.setXYZ(vi, q[0], q[1], q[2]);
+      }
+      pa.needsUpdate = true;      // se conservan las normales originales: la deformación es suave y así no salen rayas de triangulación
+    }
     return g;
+  }
+
+  // === MONOPLAZA (F1): ruedas al aire, tub estrecho, pontones, alas, halo ===
+  if (cls === 'f1'){
+    var zNose = maxA + 1.0, zTail = -(maxA + 0.75);
+    var trackF = vehicle.track;
+    var tubW = 0.56;
+    function poly(pts){
+      var sh = new THREE.Shape();
+      pts.forEach(function(q, i){ if (i === 0) sh.moveTo(q[0], q[1]); else sh.lineTo(q[0], q[1]); });
+      sh.closePath();
+      return sh;
+    }
+    var yb = 0.10;
+    // Tub + morro + cubierta del motor (perfil lateral, se estrecha en planta hacia las puntas)
+    var tubDeform = function(x, y, z){
+      var u = z >= 0 ? Math.max(0, (z - 0.2) / (zNose - 0.2)) : Math.max(0, (-z - 0.6) / (-zTail - 0.6));
+      u = Math.min(1.05, u);
+      var k = 1 - (z >= 0 ? 0.62 : 0.55) * Math.pow(u, 1.6);
+      return [x * k, y, z];
+    };
+    var tub = new THREE.Mesh(sideExtrude(poly([
+      [zTail, yb + 0.02], [zNose - 0.05, yb + 0.02], [zNose, yb + 0.10], [zNose - 0.1, yb + 0.20],
+      [1.45, yb + 0.27], [0.80, yb + 0.46], [0.25, yb + 0.50],
+      [-0.05, yb + 0.56], [-0.30, yb + 0.80], [-0.55, yb + 0.88],
+      [-1.15, yb + 0.58], [zTail + 0.1, yb + 0.30], [zTail, yb + 0.22]
+    ]), tubW, 0.06, 3, tubDeform), matBody);
+    tub.castShadow = true;
+    group.add(tub);
+
+    // Pontones laterales (con "botella de coca" hacia atrás)
+    var podDeform = function(x, y, z){ return [x, y, z]; };
+    [-1, 1].forEach(function(sgn){
+      var pod = new THREE.Mesh(sideExtrude(poly([
+        [0.75, yb + 0.03], [0.80, yb + 0.30], [0.30, yb + 0.40], [-0.70, yb + 0.36],
+        [-1.30, yb + 0.20], [-1.50, yb + 0.10], [-1.45, yb + 0.03]
+      ]), 0.34, 0.05, 3, podDeform), matBody);
+      pod.position.x = sgn * (tubW/2 + 0.12);
+      pod.castShadow = true;
+      group.add(pod);
+      // Toma de aire del pontón
+      var inlet = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.16, 0.03), matDark);
+      inlet.position.set(sgn * (tubW/2 + 0.12), yb + 0.20, 0.80);
+      group.add(inlet);
+    });
+
+    // Suelo / plancha y difusor
+    var floor1 = new THREE.Mesh(new THREE.BoxGeometry(tubW + 0.80, 0.03, (zNose - 0.6) - zTail - 1.0), matDark);
+    floor1.position.set(0, yb, (zNose - 0.6 + zTail + 1.0)/2 - 0.5);
+    group.add(floor1);
+    var diffu = new THREE.Mesh(new THREE.BoxGeometry(tubW + 0.55, 0.13, 0.5), matDark);
+    diffu.position.set(0, yb + 0.07, zTail + 0.20);
+    group.add(diffu);
+
+    // Cockpit: apertura oscura, casco y halo
+    var cockpit = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.04, 0.60), matDark);
+    cockpit.position.set(0, yb + 0.535, 0.12);
+    group.add(cockpit);
+    var helmet = new THREE.Mesh(new THREE.SphereGeometry(0.135, 14, 10),
+      new THREE.MeshStandardMaterial({ color:0xf2f2f2, roughness:0.25, metalness:0.3 }));
+    helmet.position.set(0, yb + 0.64, 0.05);
+    helmet.castShadow = true;
+    group.add(helmet);
+    var visor = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.05, 0.05),
+      new THREE.MeshStandardMaterial({ color:0x111118, roughness:0.1, metalness:0.6 }));
+    visor.position.set(0, yb + 0.65, 0.17);
+    group.add(visor);
+    var haloBar = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.035, 0.035), matDark);
+    haloBar.position.set(0, yb + 0.76, 0.46);
+    group.add(haloBar);
+    [-1, 1].forEach(function(sgn){
+      var arm = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.03, 0.62), matDark);
+      arm.position.set(sgn * 0.21, yb + 0.76, 0.15);
+      group.add(arm);
+      var post = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.22, 0.03), matDark);
+      post.position.set(sgn * 0.20, yb + 0.66, 0.40);
+      group.add(post);
+    });
+    var centerPost = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.16, 0.03), matDark);
+    centerPost.position.set(0, yb + 0.67, 0.55);
+    group.add(centerPost);
+    // Toma de aire del motor sobre el casco
+    var airbox = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.22, 0.20), matDark);
+    airbox.position.set(0, yb + 0.88, -0.38);
+    group.add(airbox);
+
+    // Ala delantera: plano principal + flap + placas laterales
+    var fwW = trackF + 0.34;
+    var fwZ = zNose - 0.12;
+    var fw1 = new THREE.Mesh(new THREE.BoxGeometry(fwW, 0.025, 0.34), matDark);
+    fw1.position.set(0, yb - 0.01, fwZ);
+    fw1.castShadow = true;
+    group.add(fw1);
+    var fw2 = new THREE.Mesh(new THREE.BoxGeometry(fwW*0.94, 0.02, 0.22), matBody);
+    fw2.position.set(0, yb + 0.055, fwZ - 0.06);
+    fw2.rotation.x = -0.12;
+    group.add(fw2);
+    [-1, 1].forEach(function(sgn){
+      var ep = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.17, 0.46), matDark);
+      ep.position.set(sgn * (fwW/2), yb + 0.07, fwZ - 0.02);
+      group.add(ep);
+      // Brazos de suspensión (horquillas) delanteros y traseros hacia las ruedas
+      [maxA, -maxA].forEach(function(az){
+        [0.16, 0.34].forEach(function(ay, idx){
+          var wx = trackF/2 - tireHalf*0.5;
+          var lenA = wx - tubW/2 + 0.03;
+          var arm2 = new THREE.Mesh(new THREE.BoxGeometry(lenA, 0.025, 0.025), matDark);
+          arm2.position.set(sgn * (tubW/2 - 0.03 + lenA/2), ay + (az > 0 ? 0 : 0.04), az + (idx ? 0.10 : -0.10));
+          arm2.rotation.z = sgn * (idx ? 0.10 : -0.10);
+          group.add(arm2);
+        });
+      });
+    });
+
+    // Ala trasera: dos planos, placas laterales, pilar y luz de lluvia
+    var rwW = 0.95;
+    var rwZ = zTail + 0.12;
+    var rw1 = new THREE.Mesh(new THREE.BoxGeometry(rwW, 0.03, 0.32), matDark);
+    rw1.position.set(0, yb + 0.80, rwZ);
+    rw1.castShadow = true;
+    group.add(rw1);
+    var rw2 = new THREE.Mesh(new THREE.BoxGeometry(rwW*0.96, 0.025, 0.24), matBody);
+    rw2.position.set(0, yb + 0.93, rwZ - 0.04);
+    rw2.rotation.x = 0.28;
+    group.add(rw2);
+    [-1, 1].forEach(function(sgn){
+      var ep2 = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.42, 0.50), matDark);
+      ep2.position.set(sgn * (rwW/2), yb + 0.80, rwZ - 0.02);
+      group.add(ep2);
+    });
+    var rpost = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.55, 0.12), matDark);
+    rpost.position.set(0, yb + 0.55, rwZ + 0.05);
+    group.add(rpost);
+    var rainMat = new THREE.MeshStandardMaterial({ color:0xff2a2a, emissive:0xff2a2a, emissiveIntensity:0.9 });
+    var rain = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.07, 0.03), rainMat);
+    rain.position.set(0, yb + 0.30, zTail - 0.005);
+    group.add(rain);
+    chassisNose = fw1;
+
+    chassisBody = group;
+    chassisGroup.add(chassisBody);
+    return;
   }
 
   // === PERFIL LATERAL DEL CASCO con pasos de rueda redondos ===
@@ -5090,12 +5297,22 @@ function rebuildChassisMesh(){
   pts.push([halfF - 0.20, hf]);                      // nariz redondeada
   pts.push([cabZ + cabL/2 + 0.05, topY]);            // base del parabrisas
   pts.push([cabZ - cabL/2 - 0.05, topY]);
-  pts.push([-halfR + 0.30, hr]);                     // maletero
+  pts.push([-halfR + (cls === 'hatch' ? 0.16 : 0.30), hr]);   // maletero (el hatch casi no tiene)
   pts.push([-halfR, hr - 0.10]);
   var shape = new THREE.Shape();
   pts.forEach(function(q, i){ if (i === 0) shape.moveTo(q[0], q[1]); else shape.lineTo(q[0], q[1]); });
   shape.closePath();
-  var main = new THREE.Mesh(sideExtrude(shape, bodyW, BV, 4), matBody);
+  var tumble = { hatch:0.10, sport:0.13, hyper:0.16, truck:0.04 }[cls] || 0.1;
+  var plan = { hatch:0.14, sport:0.20, hyper:0.26, truck:0.06 }[cls] || 0.14;
+  var hullDeform = function(x, y, z){
+    var t = Math.max(0, Math.min(1, (y - y0) / (topY - y0)));
+    var u = z >= 0 ? z / halfF : -z / halfR;           // 0 en el centro, 1 en los extremos
+    u = Math.max(0, Math.min(1.05, u));
+    var k = (1 - tumble * Math.pow(t, 1.6)) * (1 - plan * Math.pow(u, 2.6));
+    var bulge = 1 + 0.025 * Math.sin(Math.PI * Math.min(1, Math.max(0, t))) * (1 - u*u);   // vientre ligeramente abombado
+    return [x * k * bulge, y, z];
+  };
+  var main = new THREE.Mesh(sideExtrude(shape, bodyW, BV, 4, hullDeform), matBody);
   main.castShadow = true;
   group.add(main);
 
@@ -5115,7 +5332,11 @@ function rebuildChassisMesh(){
   gs.moveTo(zr0, topY - 0.02); gs.lineTo(zf0, topY - 0.02);
   gs.lineTo(zft, topY + cabH - 0.03); gs.lineTo(zrt, topY + cabH - 0.03);
   gs.closePath();
-  var cab = new THREE.Mesh(sideExtrude(gs, cabW, 0.03, 2), matGlass);
+  var cabDeform = function(x, y, z){
+    var t = Math.max(0, Math.min(1, (y - topY) / cabH));
+    return [x * (1 - 0.16*t), y, z];
+  };
+  var cab = new THREE.Mesh(sideExtrude(gs, cabW, 0.03, 2, cabDeform), matGlass);
   cab.castShadow = true;
   group.add(cab);
 
@@ -5127,21 +5348,21 @@ function rebuildChassisMesh(){
   rs.lineTo(zft + 0.02, topY + cabH - 0.01);
   rs.lineTo(zrt - 0.02, topY + cabH - 0.01);
   rs.closePath();
-  var roof = new THREE.Mesh(sideExtrude(rs, cabW + 0.02, 0.03, 2), matBody);
+  var roof = new THREE.Mesh(sideExtrude(rs, (cabW + 0.02)*0.86, 0.03, 2), matBody);
   roof.castShadow = true;
   group.add(roof);
 
   // === MORRO: labio / splitter integrado (no sobresale) ===
   chassisNose = null;
   if (cls === 'sport' || cls === 'hyper'){
-    var lip = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.94, 0.03, 0.10), matDark);
+    var lip = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.74, 0.03, 0.10), matDark);
     lip.position.set(0, y0 - BV + 0.02, halfF + 0.01);
     lip.castShadow = true;
     group.add(lip);
     chassisNose = lip;
   }
   // Parachoques / rejilla frontal oscura
-  var grille = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.56, 0.09, 0.03), matDark);
+  var grille = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.46, 0.09, 0.03), matDark);
   grille.position.set(0, y0 + (hf - y0)*0.32, halfF + BV - 0.005);
   group.add(grille);
 
@@ -5162,7 +5383,7 @@ function rebuildChassisMesh(){
       plate.position.set(sgn * wingW*0.5, wingY + 0.03, -halfR + 0.10);
       group.add(plate);
     });
-    var diff = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.78, 0.10, 0.22), matDark);
+    var diff = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.62, 0.10, 0.22), matDark);
     diff.position.set(0, y0 - BV + 0.07, -halfR - 0.01);
     group.add(diff);
   }
@@ -5193,17 +5414,118 @@ function rebuildChassisMesh(){
   });
   [-1, 1].forEach(function(sgn){
     var light = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.04), headMat);
-    light.position.set(sgn * bodyW*0.34, hf - 0.14, halfF + BV - 0.005);
+    light.position.set(sgn * bodyW*0.30, hf - 0.14, halfF + BV - 0.005);
     group.add(light);
   });
+  // Pilotos traseros: carcasa oscura + lente roja con forma (cuña que sube hacia
+  // el exterior) + luz de freno según la clase: anillos (hatch), barra LED
+  // (deportivo) o barra continua con cuchillas (superdeportivo). Piloto de
+  // marcha atrás blanco e intermitente ámbar abajo.
   var tailMat = new THREE.MeshStandardMaterial({
-    color: 0xc4472f, emissive: 0xc4472f, emissiveIntensity: 0.7, roughness: 0.3
+    color: 0xb3261a, emissive: 0xd82a1a, emissiveIntensity: 0.85, roughness: 0.25, metalness: 0.1
   });
+  var tailHot = new THREE.MeshStandardMaterial({
+    color: 0xff5a40, emissive: 0xff3a24, emissiveIntensity: 1.3, roughness: 0.2
+  });
+  var amberMat = new THREE.MeshStandardMaterial({
+    color: 0xffa21a, emissive: 0xff9a10, emissiveIntensity: 0.8, roughness: 0.3
+  });
+  var revMat = new THREE.MeshStandardMaterial({
+    color: 0xf4f4f4, emissive: 0xdde6ff, emissiveIntensity: 0.55, roughness: 0.3
+  });
+  var tzS = -halfR - BV;                 // superficie trasera
+  var tyC = hr - 0.15;                   // altura central del piloto
+  var tXi = bodyW * (cls === 'hyper' ? 0.10 : 0.16);
+  var tXo = bodyW * 0.5 - 0.05;
+  var tH  = cls === 'hyper' ? 0.040 : (cls === 'sport' ? 0.055 : 0.09);
   [-1, 1].forEach(function(sgn){
-    var t = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.07, 0.04), tailMat);
-    t.position.set(sgn * bodyW*0.34, hr - 0.14, -halfR - BV + 0.005);
-    group.add(t);
+    // Carcasa
+    var shp = new THREE.Shape();
+    shp.moveTo(sgn*tXi, tyC - tH*0.55);
+    shp.lineTo(sgn*tXo, tyC - tH*0.80);
+    shp.lineTo(sgn*tXo, tyC + tH*0.95);
+    shp.lineTo(sgn*tXi, tyC + tH*0.35);
+    shp.lineTo(sgn*tXi, tyC - tH*0.55);
+    var hous = new THREE.Mesh(new THREE.ExtrudeGeometry(shp, { depth: 0.02, bevelEnabled:false }), matDark);
+    hous.scale.set(1.06, 1.18, 1);
+    hous.position.set(sgn*(tXi+tXo)/2*(1-1.06), tyC*(1-1.18), tzS - 0.004);
+    group.add(hous);
+    // Lente roja
+    var lens = new THREE.Mesh(new THREE.ExtrudeGeometry(shp, { depth: 0.02, bevelEnabled:true, bevelThickness:0.004, bevelSize:0.004, bevelSegments:1 }), tailMat);
+    lens.position.set(0, 0, tzS - 0.010);
+    group.add(lens);
+    var xm = sgn*(tXi + tXo)/2;
+    if (cls === 'hatch' || cls === 'truck'){
+      // Dos anillos de luz de freno + punto central
+      [0.30, 0.72].forEach(function(f){
+        var rx = sgn*(tXi + (tXo - tXi)*f);
+        var ring = new THREE.Mesh(new THREE.TorusGeometry(0.030, 0.008, 8, 20), tailHot);
+        ring.position.set(rx, tyC + tH*0.18, tzS - 0.020);
+        group.add(ring);
+        var dot = new THREE.Mesh(new THREE.CircleGeometry(0.012, 12), tailHot);
+        dot.rotation.y = Math.PI;
+        dot.position.set(rx, tyC + tH*0.18, tzS - 0.022);
+        group.add(dot);
+      });
+    } else {
+      // Barra LED horizontal dentro de la lente, en tramos
+      var segs = cls === 'hyper' ? 4 : 5;
+      for (var si = 0; si < segs; si++){
+        var f0 = si / segs, f1 = (si + 0.72) / segs;
+        var sx0 = tXi + (tXo - tXi)*f0, sx1 = tXi + (tXo - tXi)*f1;
+        var sw = Math.abs(sx1 - sx0), sh = tH * (0.28 + 0.12*(1 - f0));
+        var led = new THREE.Mesh(new THREE.BoxGeometry(sw, sh, 0.012), tailHot);
+        led.position.set(sgn*(sx0 + sx1)/2, tyC + tH*(0.15 + 0.35*f0) - 0.004, tzS - 0.020);
+        group.add(led);
+      }
+      if (cls === 'hyper'){
+        var blade = new THREE.Mesh(new THREE.BoxGeometry(0.012, tH*1.4, 0.012), tailHot);
+        blade.position.set(sgn*(tXo - 0.03), tyC + tH*0.1, tzS - 0.020);
+        group.add(blade);
+      }
+    }
+    // Marcha atrás (blanco) e intermitente (ámbar) bajo la lente, en la parte baja del paragolpes
+    var rev = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.025, 0.012), revMat);
+    rev.position.set(sgn*(tXi + 0.06), tyC - tH*0.95 - 0.03, tzS - 0.006);
+    group.add(rev);
+    var ind = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.025, 0.012), amberMat);
+    ind.position.set(sgn*(tXo - 0.07), tyC - tH*0.95 - 0.03, tzS - 0.006);
+    group.add(ind);
   });
+  if (cls === 'sport' || cls === 'hyper'){
+    // Tercera luz continua entre pilotos
+    var barW = (tXi * 2) * 0.96;
+    var bar = new THREE.Mesh(new THREE.BoxGeometry(barW, 0.014, 0.012), tailHot);
+    bar.position.set(0, tyC + tH*0.15, tzS - 0.014);
+    group.add(bar);
+  }
+
+
+  // === DETALLES: retrovisores, juntas de puerta, faldones, parachoques trasero ===
+  var mirrorZ = zf0 - Math.min(0.30, cabL*0.12);
+  [-1, 1].forEach(function(sgn){
+    var mir = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.07, 0.15), matBody);
+    mir.position.set(sgn * (cabW/2 + 0.06), topY + 0.10, mirrorZ);
+    group.add(mir);
+    var arm = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.02, 0.03), matDark);
+    arm.position.set(sgn * (cabW/2 + 0.02), topY + 0.08, mirrorZ);
+    group.add(arm);
+    var doorH = Math.max(0.2, Math.min(hf, hr) - y0 - 0.16);
+    [cabZ + cabL*0.30, cabZ - cabL*0.10, cabZ - cabL*0.42].forEach(function(dz){
+      var seam = new THREE.Mesh(new THREE.BoxGeometry(0.01, doorH, 0.012), matDark);
+      seam.position.set(sgn * (hullDeform(bodyW/2, y0 + 0.08 + doorH/2, dz)[0] + 0.004), y0 + 0.08 + doorH/2, dz);
+      group.add(seam);
+    });
+    var skirt = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.05, (halfF + halfR)*0.34), matDark);
+    skirt.position.set(sgn * (hullDeform(bodyW/2, y0 + 0.07, 0)[0] - 0.006), y0 - BV + 0.07, (halfF - halfR)/2);
+    group.add(skirt);
+    var hnd = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.025, 0.12), matDark);
+    hnd.position.set(sgn * (hullDeform(bodyW/2, hf - 0.1, cabZ + cabL*0.04)[0] + 0.004), hf - 0.1, cabZ + cabL*0.04);
+    group.add(hnd);
+  });
+  var rbump = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.66, 0.10, 0.03), matDark);
+  rbump.position.set(0, y0 + 0.08, -halfR - BV + 0.002);
+  group.add(rbump);
 
   chassisBody = group;
   chassisGroup.add(chassisBody);
@@ -5545,6 +5867,166 @@ function update4wScene(results, kappasMap){
   renderer4w.render(scene4w, camera4w);
 }
 
+/* ==========================================================================
+   Línea de trazada (guía visual). NO conduce el coche: solo dibuja sobre la
+   pista el camino que minimiza la distancia dentro del ancho disponible
+   (fuera–vértice–fuera) y lo colorea con la velocidad objetivo.
+   - Geometría: relajación iterativa del eje (cada punto tiende al punto medio
+     de sus vecinos, proyectado sobre la normal) con tope de ±(ancho/2 − margen).
+   - Velocidad: v = √(μ·g / (κ − μ·c/m)) con c = carga aero por (m/s)²,
+     más pasadas hacia delante/atrás con límites de aceleración y frenada.
+   ========================================================================== */
+var RacingLine = (function(){
+  var enabled = true;
+  try { var sv = localStorage.getItem('apex_racingline'); if (sv === '0') enabled = false; } catch(e){}
+  var mesh = null;
+
+  function compute(track, opts){
+    opts = opts || {};
+    if (!track || !track.segs || !track.segs.length) return null;
+    var width = track.width || 10;
+    var margin = (opts.margin != null) ? opts.margin : 1.1;     // semiancho del coche + holgura
+    var emax = Math.max(0.3, width/2 - margin);
+    var ds0 = 4;
+    var N = Math.max(8, Math.round(track.totalLength / ds0));
+    var ds = track.totalLength / N;
+    var C = [], nrm = [];
+    var i;
+    for (i = 0; i < N; i++){
+      var pt = track.pointAtS(i*ds);
+      C.push({ x: pt.x, z: pt.z, elev: pt.elev, h: pt.heading });
+      nrm.push({ x: Math.cos(pt.heading), z: -Math.sin(pt.heading) });
+    }
+    var endPt = track.pointAtS(track.totalLength - 0.01);   // (en totalLength envuelve al inicio)
+    var closed = Math.hypot(endPt.x - C[0].x, endPt.z - C[0].z) < Math.max(width*1.5, 6);
+    var e = new Array(N); for (i = 0; i < N; i++) e[i] = 0;
+    function P(j){ return { x: C[j].x + nrm[j].x*e[j], z: C[j].z + nrm[j].z*e[j] }; }
+    var lo = closed ? 0 : 1, hi = closed ? N - 1 : N - 2;
+    var omega = 1.7, it;
+    for (it = 0; it < 500; it++){
+      for (i = lo; i <= hi; i++){
+        var a = P((i - 1 + N) % N), b = P((i + 1) % N);
+        var mx = (a.x + b.x)/2 - C[i].x, mz = (a.z + b.z)/2 - C[i].z;
+        var tgt = mx*nrm[i].x + mz*nrm[i].z;
+        var ne = e[i] + omega*(tgt - e[i]);
+        e[i] = Math.max(-emax, Math.min(emax, ne));
+      }
+    }
+    // Curvatura de la línea (Menger) y velocidad límite
+    var pts = [], length = 0, centerLen = track.totalLength;
+    var mu = Math.max(0.3, opts.mu || 1), mass = Math.max(200, opts.mass || 1200);
+    var cAero = Math.max(0, opts.aeroPerV2 || 0) / mass;       // m/s² por (m/s)²
+    var vCap = opts.vCap || 95;
+    var kArr = new Array(N), vArr = new Array(N);
+    for (i = 0; i < N; i++){
+      var p0 = P((i - 1 + N) % N), p1 = P(i), p2 = P((i + 1) % N);
+      var d1x = p1.x - p0.x, d1z = p1.z - p0.z, d2x = p2.x - p1.x, d2z = p2.z - p1.z;
+      var cross = d1x*d2z - d1z*d2x;
+      var l1 = Math.hypot(d1x, d1z), l2 = Math.hypot(d2x, d2z), l3 = Math.hypot(p2.x - p0.x, p2.z - p0.z);
+      var kk = (l1*l2*l3 > 1e-6) ? 2*cross/(l1*l2*l3) : 0;
+      if (!closed && (i === 0 || i === N - 1)) kk = 0;
+      kArr[i] = kk;
+      if (closed || i < N - 1) length += l2;
+    }
+    // Suaviza la curvatura (ventana de 5) para que el color no parpadee
+    var ks = new Array(N);
+    for (i = 0; i < N; i++){
+      var acc = 0, cnt = 0;
+      for (var q = -2; q <= 2; q++){
+        var jj = i + q; if (closed) jj = (jj + N) % N; else if (jj < 0 || jj >= N) continue;
+        acc += Math.abs(kArr[jj]); cnt++;
+      }
+      ks[i] = acc / cnt;
+    }
+    for (i = 0; i < N; i++){
+      var den = ks[i] - mu*cAero;
+      vArr[i] = (den > 1e-5) ? Math.min(vCap, Math.sqrt(mu*9.81/den)) : vCap;
+    }
+    var aB = 0.9*mu*9.81, aA = Math.min(0.55*mu*9.81, opts.aAccel || 99);
+    var passes = closed ? 3 : 1, pass;
+    for (pass = 0; pass < passes; pass++){
+      for (i = N - 1; i >= 0; i--){                 // frenada hacia atrás
+        var nx2 = (i + 1) % N; if (!closed && i === N - 1) continue;
+        var vb = Math.sqrt(vArr[nx2]*vArr[nx2] + 2*aB*ds);
+        if (vb < vArr[i]) vArr[i] = vb;
+      }
+      for (i = 0; i < N; i++){                      // aceleración hacia delante
+        var pv = (i - 1 + N) % N; if (!closed && i === 0) continue;
+        var va = Math.sqrt(vArr[pv]*vArr[pv] + 2*aA*ds);
+        if (va < vArr[i]) vArr[i] = va;
+      }
+    }
+    var vMin = 1e9, vMax = 0;
+    for (i = 0; i < N; i++){
+      var pp = P(i);
+      pts.push({ x: pp.x, z: pp.z, e: e[i], s: i*ds, k: kArr[i], v: vArr[i], elev: C[i].elev, h: C[i].h });
+      vMin = Math.min(vMin, vArr[i]); vMax = Math.max(vMax, vArr[i]);
+    }
+    return { pts: pts, closed: closed, length: length, centerLength: centerLen, vMin: vMin, vMax: vMax, ds: ds, emax: emax, aBrake: aB };
+  }
+
+  function clear(){
+    if (mesh && scene4w){
+      scene4w.remove(mesh);
+      mesh.geometry.dispose(); mesh.material.dispose();
+    }
+    mesh = null;
+  }
+
+  function build(){
+    clear();
+    if (!enabled || !scene4w || !TRACK.segs.length) return null;
+    var g = 9.81;
+    var aeroPerV2 = 0.5*1.2*(vehicle.area||2.2)*0.35*((vehicle.downforcePct||100)/100);
+    var res = compute(TRACK, { mu: vehicle.muStatic || 1, mass: vehicle.mass || 1200, aeroPerV2: aeroPerV2 });
+    if (!res) return null;
+    var pts = res.pts, N = pts.length, half = 0.5;
+    var pos = [], col = [], idx = [];
+    var segCount = res.closed ? N : N - 1;
+    for (var i = 0; i < N; i++){
+      var a = pts[i], b = pts[(i + 1) % N], c = pts[(i - 1 + N) % N];
+      if (!res.closed){ if (i === N - 1) b = a; if (i === 0) c = a; }
+      var tx = b.x - c.x, tz = b.z - c.z, tl = Math.hypot(tx, tz) || 1;
+      var px = tz/tl, pz = -tx/tl;                         // normal en planta
+      var st = TRACK.stateAt(a.s), bank = st ? st.bankDeg*Math.PI/180 : 0;
+      var y = a.elev + Math.sin(bank)*a.e + 0.06;
+      pos.push(a.x + px*half, y, a.z + pz*half, a.x - px*half, y, a.z - pz*half);
+      // Color: verde = rápido, amarillo = curva lenta, rojo = zona de frenada
+      var t = (res.vMax - res.vMin) > 1 ? (a.v - res.vMin)/(res.vMax - res.vMin) : 1;
+      var r0, g0, b0;
+      if (t < 0.5){ var f = t/0.5; r0 = 1.0; g0 = 0.78*f + 0.1; b0 = 0.1; }
+      else { var f2 = (t - 0.5)/0.5; r0 = 1.0 - 0.85*f2; g0 = 0.88; b0 = 0.1 + 0.2*f2; }
+      var nxt = pts[(i + 1) % N];
+      var accl = (nxt.v*nxt.v - a.v*a.v)/(2*res.ds);
+      var br = Math.max(0, Math.min(1, -accl/(0.35*res.aBrake)));
+      r0 = r0 + (1.0 - r0)*br; g0 = g0*(1 - br) + 0.12*br; b0 = b0*(1 - br) + 0.1*br;
+      col.push(r0, g0, b0, r0, g0, b0);
+    }
+    for (var j = 0; j < segCount; j++){
+      var A = j*2, B = j*2 + 1, Cc = ((j + 1) % N)*2, D = ((j + 1) % N)*2 + 1;
+      idx.push(A, Cc, B, B, Cc, D);
+    }
+    var geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+    geo.setIndex(idx);
+    var mat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.78, depthWrite: false,
+      side: THREE.DoubleSide, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+    mesh = new THREE.Mesh(geo, mat);
+    mesh.renderOrder = 2;
+    scene4w.add(mesh);
+    return res;
+  }
+
+  function setEnabled(on){
+    enabled = !!on;
+    try { localStorage.setItem('apex_racingline', enabled ? '1' : '0'); } catch(e){}
+    build();
+  }
+  return { compute: compute, build: build, clear: clear, setEnabled: setEnabled,
+           isEnabled: function(){ return enabled; }, getMesh: function(){ return mesh; } };
+})();
+
 function buildTrackMesh(){
   if (trackRoadMesh){
     scene4w.remove(trackRoadMesh);
@@ -5552,13 +6034,13 @@ function buildTrackMesh(){
     trackRoadMesh.material.dispose();
     trackRoadMesh = null;
   }
-  if (!TRACK.segs.length || !scene4w) return;
+  if (!TRACK.segs.length || !scene4w){ RacingLine.clear(); return; }
   var width = TRACK.width || 10;
   var stepLen = 4;
   var n = Math.max(2, Math.ceil(TRACK.totalLength/stepLen));
   var positions = [], uvs = [], indices = [];
   for (var i=0;i<=n;i++){
-    var s = (i/n)*TRACK.totalLength;
+    var s = (i/n)*TRACK.totalLength; s = Math.min(s, TRACK.totalLength - 0.001);   // en totalLength pointAtS envuelve al inicio (franja diagonal en pistas abiertas)
     var pt = TRACK.pointAtS(s);
     var st = TRACK.stateAt(s);
     var bankRad = (st ? st.bankDeg : 0) * Math.PI/180;
@@ -5594,6 +6076,7 @@ function buildTrackMesh(){
   scene4w.add(trackRoadMesh);
 
   buildTrackBarriers();
+  RacingLine.build();
 }
 
 /* Barreras rojas/blancas a ambos lados del trazado. Se construyen como
@@ -5637,7 +6120,7 @@ function buildTrackBarriers(){
   [-1, 1].forEach(function(side){
     var positions = [], uvs = [], indices = [];
     for (var i = 0; i <= n; i++){
-      var s = (i / n) * TRACK.totalLength;
+      var s = (i / n) * TRACK.totalLength; s = Math.min(s, TRACK.totalLength - 0.001);   // en totalLength pointAtS envuelve al inicio (franja diagonal en pistas abiertas)
       var pt = TRACK.pointAtS(s);
       var st = TRACK.stateAt(s);
       var bankRad = (st ? st.bankDeg : 0) * Math.PI / 180;
@@ -5861,46 +6344,83 @@ function bindVehicleControls(){
   // contra un modelo real concreto — eso exigiría datos que no son públicos).
   var CAR_CLASS_PRESETS = {
     hatch: { mass:1300, Cd:0.32, area:2.2, downforcePct:60, engineType:'gas_turbo',
-              engTmax:309, engRedline:6800, engIdle:850, displacementL:2.0, cylinders:4, turboLagS:0.30 },
+              engTmax:335, engRedline:6800, engIdle:850, displacementL:2.0, cylinders:4, turboLagS:0.30 },
     sport: { mass:1450, Cd:0.30, area:2.1, downforcePct:110, engineType:'gas_turbo',
-              engTmax:420, engRedline:7200, engIdle:900, displacementL:3.0, cylinders:6, turboLagS:0.25 },
+              engTmax:621, engRedline:7200, engIdle:900, displacementL:3.0, cylinders:6, turboLagS:0.25 },
     hyper: { mass:1450, Cd:0.33, area:1.9, downforcePct:180, engineType:'gas_turbo',
-              engTmax:540, engRedline:7800, engIdle:950, displacementL:4.0, cylinders:8, turboLagS:0.20 }
+              engTmax:900, engRedline:7800, engIdle:950, displacementL:4.0, cylinders:8, turboLagS:0.20 },
+    // Monoplaza genérico (no un coche real): ~650 kW, 800 kg, slicks anchos,
+    // mucha carga aerodinámica, 6 marchas cortas y frenos de carbono.
+    // Inercias y rigidez de suspensión son estimaciones razonables, no datos de equipo.
+    f1:    { mass:800, wheelbase:3.40, track:1.60, cgHeight:0.27, frontWeightPct:45,
+              Iz:1000, Ix:500, Iy:1100, susK:90000, steerMaxDeg:18, Tbrake:1800,
+              Cd:0.85, area:1.4, downforcePct:330, aeroBalanceFront:42, groundEffectGain:0.50,
+              rimDiameterIn:18, tireWidthMm:305, profilePct:40, tireType:'race',
+              gearRatios:[0, 3.20, 2.30, 1.75, 1.40, 1.12, 0.92], finalDrive:3.7,
+              engineType:'gas_turbo', engTmax:793, engRedline:12000, engIdle:1500,
+              displacementL:1.6, cylinders:6, turboLagS:0.08 }
   };
+  // Valores por defecto que se restauran al salir del monoplaza, para que
+  // pasar de F1 a otro preset no deje la batalla, las ruedas o las marchas de F1.
+  var CAR_CLASS_RESET = { wheelbase:2.60, track:1.50, cgHeight:0.50, frontWeightPct:50,
+    Iz:1500, Ix:1800, Iy:2200, susK:35000, steerMaxDeg:30, Tbrake:900,
+    aeroBalanceFront:40, groundEffectGain:0.30,
+    rimDiameterIn:17, tireWidthMm:215, profilePct:45, tireType:'street',
+    gearRatios:[0, 3.50, 2.20, 1.52, 1.15, 0.87, 0.70], finalDrive:3.7 };
   function applyCarClassPreset(cls){
     var preset = CAR_CLASS_PRESETS[cls];
     if (!preset) return;
-    Object.keys(preset).forEach(function(k){ vehicle[k] = preset[k]; });
+    var wasF1 = (vehicle._bodyClass === 'f1' && cls !== 'f1');
+    if (wasF1){
+      Object.keys(CAR_CLASS_RESET).forEach(function(k){
+        vehicle[k] = (k === 'gearRatios') ? CAR_CLASS_RESET[k].slice() : CAR_CLASS_RESET[k];
+      });
+    }
+    Object.keys(preset).forEach(function(k){ vehicle[k] = (k === 'gearRatios') ? preset[k].slice() : preset[k]; });
+    var geomChanged = (cls === 'f1') || wasF1;
     vehicle._bodyClass = cls; vehicle._bodyClassSig = vehicle.mass + '|' + vehicle.engTmax;
-    (typeof map !== 'undefined' ? map : []).forEach(function(cfg){
-      if (!(cfg.key in preset)) return;
+    var syncSrc = wasF1 ? Object.assign({}, CAR_CLASS_RESET, preset) : preset;
+    (typeof map !== 'undefined' ? map : []).concat(typeof rimMap !== 'undefined' ? rimMap : []).forEach(function(cfg){
+      if (!(cfg.key in syncSrc)) return;
       var el = document.getElementById(cfg.id);
       if (!el) return;
-      var raw = cfg.scale ? preset[cfg.key] / cfg.scale : preset[cfg.key];
+      var raw = cfg.scale ? syncSrc[cfg.key] / cfg.scale : syncSrc[cfg.key];
       el.value = raw;
       var dispEl = document.getElementById(cfg.disp);
-      if (dispEl) dispEl.textContent = cfg.fmt(preset[cfg.key]);
+      if (dispEl) dispEl.textContent = cfg.fmt(syncSrc[cfg.key]);
     });
     var engSel = document.getElementById('vEngType');
     if (engSel) engSel.value = preset.engineType;
+    if (geomChanged){
+      // Ruedas, neumático y batalla cambian de verdad: hay que reconstruir la estructura
+      applyTireType(vehicle.tireType, true);
+      computeWheelGeometry();
+      rebuildWheelStructures();
+    }
     showToast('Preset: ' + cls + ' — Pmáx≈' + Math.round(estimatePeakKw(preset)) + ' kW, ' + preset.mass + ' kg');
     if (typeof rebuildChassisMesh === 'function') rebuildChassisMesh();
+    if (typeof RacingLine !== 'undefined' && TRACK.segs.length) RacingLine.build();   // los colores dependen de μ, masa y carga aero
   }
+  // Potencia pico REAL: se evalúa la misma función de par que usa la simulación
+  // (combustionTorqueNm, con turbo a pleno, incluida la fricción). La versión
+  // anterior usaba una fórmula aparte que ignoraba la fricción y daba cifras
+  // 15-40 % por encima de lo que el coche entregaba.
   function estimatePeakKw(p){
     var best = 0;
-    for (var rpm=1000; rpm<=p.engRedline; rpm+=25){
-      var x = Math.max(0, Math.min(1.05, rpm/p.engRedline));
-      var riseT = Math.min(1, x/0.22), fallT = Math.max(0, 1-Math.max(0,x-0.75)/0.30);
-      var mapTurbo = Math.min(1, riseT*fallT);
-      var T = p.engTmax * (0.5+0.5*mapTurbo);
-      var Pw = T * (2*Math.PI*rpm/60);
+    var eng = { engineType:p.engineType, engRedline:p.engRedline, engIdle:p.engIdle, engTmax:p.engTmax,
+                displacementL:p.displacementL, cylinders:p.cylinders, turboLagS:p.turboLagS, _turboSpool:1, _lastSubDt:0.005 };
+    for (var rpm = 1000; rpm <= p.engRedline * 1.05; rpm += 25){
+      eng._turboSpool = 1;
+      var T = Transmission.prototype.combustionTorqueNm.call(eng, rpm, 1);
+      var Pw = T * (2 * Math.PI * rpm / 60);
       if (Pw > best) best = Pw;
     }
-    return best/1000;
+    return best / 1000;
   }
+  window._carClassPresets = CAR_CLASS_PRESETS; window._estimatePeakKw = estimatePeakKw;
   var carClassEl = document.getElementById('vCarClass');
   if (carClassEl) carClassEl.addEventListener('change', function(){ applyCarClassPreset(this.value); });
-  [['btnCarHatch','hatch'],['btnCarSport','sport'],['btnCarHyper','hyper']].forEach(function(pair){
+  [['btnCarHatch','hatch'],['btnCarSport','sport'],['btnCarHyper','hyper'],['btnCarF1','f1']].forEach(function(pair){
     var btn = document.getElementById(pair[0]);
     if (btn) btn.addEventListener('click', function(){ applyCarClassPreset(pair[1]); });
   });
@@ -6000,6 +6520,11 @@ function bindVehicleControls(){
     buildTrackMesh();
     showToast('Circuito quitado — usando pendientes globales');
   });
+  var rlChk = document.getElementById('chkRacingLine');
+  if (rlChk){
+    rlChk.checked = RacingLine.isEnabled();
+    rlChk.addEventListener('change', function(){ RacingLine.setEnabled(this.checked); });
+  }
   var widthSliderEl = document.getElementById('vTrackWidth');
   if (widthSliderEl){
     widthSliderEl.addEventListener('input', function(){
@@ -6749,6 +7274,81 @@ function showToast(msg){
 }
 
 /* ============================================================
+   TELEMETRÍA DEL VEHÍCULO → CSV
+   Registro continuo a 20 Hz (tiempo de simulación) de los últimos
+   DRIVELOG_MAX segundos mientras el coche está en marcha. Se descarga
+   con el botón "Telemetría CSV". Solo lee estado; no toca la física.
+   ============================================================ */
+var DriveLog = (function(){
+  var HZ = 20, MAX_S = 180, MAX_ROWS = HZ * MAX_S;
+  var rows = [], acc = 0, tSim = 0;
+  function round(v, d){ if (v == null || !isFinite(v)) return ''; var f = Math.pow(10, d); return Math.round(v*f)/f; }
+  function snapshot(out){
+    var r = {
+      t: round(tSim, 3), x: round(chassis.x, 2), z: round(chassis.z, 2), psi_deg: round((chassis.psi||0)*180/Math.PI, 2),
+      u_kmh: round((chassis.u||0)*3.6, 2), w_ms: round(chassis.w, 3), yaw_rate_degs: round((chassis.r||0)*180/Math.PI, 2),
+      ax_g: round(chassis._axG, 3), ay_g: round(chassis._ayG, 3),
+      rpm: round(chassis._rpm, 0), gear: vehicle.gear,
+      throttle: round(controls.throttle, 3), brake: round(controls.brake, 3), steer_deg: round((controls.steerRad||0)*180/Math.PI, 2),
+      tcs: chassis._tcs ? 1 : 0, abs: chassis._abs ? 1 : 0,
+      tire_T_C: round(chassis._tireT, 1), tire_wear: round(chassis._tireWear, 4),
+      aero_down_N: round(chassis._aeroN, 0), drag_N: round(chassis._dragN, 0),
+      track_s_m: chassis._trackProj ? round(chassis._trackProj.s, 1) : '',
+      track_lat_m: chassis._trackProj ? round(chassis._trackProj.lateral, 2) : '',
+      lap_s: TRACK.segs.length ? round(chassis._lapTimer, 2) : ''
+    };
+    if (out){
+      currentWheelDefs.forEach(function(w){
+        var re = out.results[w.id] || {};
+        r['Fz_' + w.id] = round(out.fzOut[w.id], 0);
+        r['Fx_' + w.id] = round(re.Fx, 0);
+        r['Fy_' + w.id] = round(re.Fy, 0);
+        r['kappa_' + w.id] = round(out.kappasOut[w.id], 4);
+      });
+    }
+    return r;
+  }
+  function tick(dt, out){
+    tSim += dt; acc += dt;
+    var step = 1 / HZ;
+    if (acc < step) return;
+    acc = acc % step;
+    rows.push(snapshot(out));
+    if (rows.length > MAX_ROWS) rows.splice(0, rows.length - MAX_ROWS);
+  }
+  function toCSV(){
+    if (!rows.length) return '';
+    var cols = [], seen = {};
+    rows.forEach(function(r){ Object.keys(r).forEach(function(k){ if (!seen[k]){ seen[k] = 1; cols.push(k); } }); });
+    var lines = [cols.join(',')];
+    rows.forEach(function(r){ lines.push(cols.map(function(k){ return r[k] === undefined ? '' : r[k]; }).join(',')); });
+    return lines.join('\n') + '\n';
+  }
+  function clear(){ rows = []; acc = 0; tSim = 0; }
+  function download(){
+    if (!rows.length){ showToast('Aún no hay telemetría: arranca el coche'); return false; }
+    var csv = toCSV();
+    var name = 'apexgrip_telemetria_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.csv';
+    try {
+      var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url; a.download = name; a.rel = 'noopener';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      showToast('📈 Telemetría exportada (' + rows.length + ' muestras, ' + (rows.length / HZ).toFixed(0) + ' s)');
+      return true;
+    } catch(e){ showToast('No se pudo exportar la telemetría'); return false; }
+  }
+  function bind(){
+    var b = document.getElementById('btnTelemetryCsv'); if (b) b.addEventListener('click', download);
+    var c = document.getElementById('btnTelemetryClear'); if (c) c.addEventListener('click', function(){ clear(); showToast('Telemetría borrada'); });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  return { tick: tick, toCSV: toCSV, clear: clear, download: download, count: function(){ return rows.length; }, HZ: HZ, MAX_ROWS: MAX_ROWS };
+})();
+
+/* ============================================================
    BUCLE PRINCIPAL
    ============================================================ */
 var frameCount = 0, lastFpsT = performance.now();
@@ -7020,6 +7620,7 @@ recta 200 0
 
     var btn = document.createElement('button');
     btn.type = 'button';
+    btn.id = 'btnTrackExt_' + id;
     btn.className = 'btn btn-secondary';
     btn.textContent = t.label || id;
     if (t.note) btn.title = t.note;
@@ -7061,6 +7662,140 @@ recta 200 0
   btnRow.parentNode.insertBefore(row, btnRow.nextSibling);
   console.info('[AutoDynamics] Circuitos externos cargados: ' + ids.join(', '));
 })();
+
+
+/* ============================================================
+   INICIO RÁPIDO — coche, circuito y clima en tres toques + "Conducir".
+   No añade física: solo pulsa los controles que ya existen (presets de
+   clase, botones de circuito, selector de superficie, arrancar).
+   ============================================================ */
+var QuickStart = (function(){
+  var CARS = [
+    { id:'hatch', name:'Hatch', kw:165, kg:1300, tire:'street', tireLbl:'calle', color:'#2a4a6e',
+      svg:'<path d="M8 36 L8 28 Q10 24 20 23 L38 19 Q48 8 66 8 L82 8 Q94 9 100 21 L110 24 Q114 26 114 30 L114 36 Z" fill="COLOR"/><path d="M42 20 Q50 11 66 11 L80 11 Q89 12 94 21 Z" fill="#1c2430"/>' },
+    { id:'sport', name:'Deportivo', kw:300, kg:1450, tire:'sport', tireLbl:'semi-slick', color:'#e8a54b',
+      svg:'<path d="M6 36 L6 31 Q8 28 18 27 L44 20 Q56 11 74 12 L88 14 Q98 18 104 24 L112 26 Q116 28 116 33 L116 36 Z" fill="COLOR"/><path d="M50 20 Q58 14 74 14 L86 16 Q94 19 98 24 Z" fill="#1c2430"/><rect x="2" y="23" width="14" height="3" fill="#14141a"/>' },
+    { id:'hyper', name:'Superdeportivo', kw:415, kg:1450, tire:'sport', tireLbl:'semi-slick', color:'#c4472f',
+      svg:'<path d="M4 36 L4 32 Q6 30 16 29 L46 21 Q58 14 76 16 L96 20 Q108 24 114 29 Q118 31 118 34 L118 36 Z" fill="COLOR"/><path d="M54 22 Q62 17 76 18 L90 21 Q98 23 100 26 Z" fill="#1c2430"/><rect x="0" y="16" width="16" height="3" fill="#14141a"/><rect x="5" y="19" width="2" height="9" fill="#14141a"/>' },
+    { id:'f1', name:'Fórmula 1', kw:650, kg:800, tire:'race', tireLbl:'slick', color:'#00a19b',
+      svg:'<path d="M14 34 L14 31 L40 29 Q52 22 60 21 L74 21 L88 26 L112 30 L112 34 Z" fill="COLOR"/><rect x="2" y="32" width="14" height="3" fill="#14141a"/><rect x="100" y="18" width="14" height="3" fill="#14141a"/><rect x="106" y="21" width="2" height="9" fill="#14141a"/><circle cx="64" cy="19" r="4" fill="#f2f2f2"/>' }
+  ];
+  var CAR_BTN = { hatch:'btnCarHatch', sport:'btnCarSport', hyper:'btnCarHyper', f1:'btnCarF1' };
+  var TRACKS = [
+    { id:'none',  btn:'btnTrackClear',      label:'Campo abierto', sub:'sin circuito' },
+    { id:'oval',  btn:'btnTrackOval',       label:'Óvalo',         sub:'peraltado' },
+    { id:'esses', btn:'btnTrackEsses',      label:'Eses',          sub:'cambios de dirección' },
+    { id:'hill',  btn:'btnTrackHill',       label:'Puerto',        sub:'de montaña' },
+    { id:'monza', btn:'btnTrackExt_monza',  label:'Monza',         sub:'~5,8 km, rectas largas' },
+    { id:'spa',   btn:'btnTrackExt_spa',    label:'Spa',           sub:'~7 km, curvas rápidas' },
+    { id:'madrid', btn:'btnTrackExt_madrid', label:'Madrid',        sub:'~5,2 km, layout especulativo' }
+  ];
+  var WEATHER = [
+    { id:'dry',  label:'🟡 Seco' }, { id:'wet', label:'🔵 Mojado' },
+    { id:'snow', label:'⚪ Nieve' }, { id:'ice', label:'🔷 Hielo' }
+  ];
+  var sel = { car:'hatch', track:'none', weather:'dry' };
+  var KEY = 'apexgrip.quickstart';
+
+  function load(){ try { var o = JSON.parse(localStorage.getItem(KEY) || 'null'); if (o){ ['car','track','weather'].forEach(function(k){ if (o[k]) sel[k] = o[k]; }); } } catch(e){} }
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(sel)); } catch(e){} }
+  function carOf(id){ return CARS.filter(function(c){ return c.id === id; })[0] || CARS[0]; }
+
+  // Neumático según clima: seco = el del coche; mojado = lluvia; nieve/hielo = invierno
+  function tireFor(carId, weather){
+    if (weather === 'wet') return 'rain';
+    if (weather === 'snow' || weather === 'ice') return 'winter';
+    return carOf(carId).tire;
+  }
+  function click(id){ var el = document.getElementById(id); if (el) el.click(); return !!el; }
+
+  // Aplica la selección sin arrancar (así se puede probar sin mover el coche).
+  function apply(o){
+    var s2 = o || sel;
+    var okCar = click(QuickStart.CAR_BTN[s2.car] || QuickStart.CAR_BTN.hatch);
+    var tr = TRACKS.filter(function(t){ return t.id === s2.track; })[0] || TRACKS[0];
+    var okTrack = click(tr.btn);
+    var surf = document.getElementById('vSurface');
+    if (surf){ surf.value = s2.weather; surf.dispatchEvent(new Event('change', { bubbles:true })); }
+    var tt = tireFor(s2.car, s2.weather);
+    var tsel = document.getElementById('vTireType');
+    if (tsel && vehicle.tireType !== tt){ tsel.value = tt; tsel.dispatchEvent(new Event('change', { bubbles:true })); }
+    return { car:okCar, track:okTrack, tire:tt };
+  }
+
+  function go(){
+    save();
+    apply();
+    if (typeof vehicleRunning !== 'undefined'){
+      if (vehicleRunning) click('btnResetCar2');   // ya en marcha: recoloca el coche
+      else click('btnVehicleRun');
+    }
+    var cv = document.getElementById('three-canvas-4w');
+    if (cv && cv.scrollIntoView){ try { cv.scrollIntoView({ behavior:'smooth', block:'center' }); } catch(e){ cv.scrollIntoView(); } }
+  }
+
+  function summary(){
+    var c = carOf(sel.car), t = TRACKS.filter(function(x){ return x.id === sel.track; })[0] || TRACKS[0];
+    var w = WEATHER.filter(function(x){ return x.id === sel.weather; })[0];
+    var tl = { street:'calle', sport:'semi-slick', race:'slick', rain:'lluvia', winter:'invierno' }[tireFor(sel.car, sel.weather)];
+    return c.name + ' · ' + t.label + ' · ' + w.label.replace(/^\S+\s/, '') + ' · neumático ' + tl;
+  }
+
+  function render(){
+    var host = document.getElementById('quickStart');
+    if (!host) return;
+    var h = '<div class="qs-head"><div class="qs-title">🏁 Inicio rápido</div>' +
+            '<button type="button" class="btn btn-secondary" id="qsToggle" style="padding:6px 10px;" aria-expanded="true">Ocultar</button></div>' +
+            '<div class="qs-body">';
+    h += '<div class="qs-label" style="margin-top:0;">Coche</div><div class="qs-cars">';
+    CARS.forEach(function(c){
+      h += '<button type="button" class="btn btn-secondary qs-car" data-car="' + c.id + '" aria-pressed="' + (sel.car === c.id) + '">' +
+           '<svg viewBox="0 0 120 48" aria-hidden="true">' + c.svg.replace(/COLOR/g, c.color) +
+           '<circle cx="28" cy="36" r="8" fill="#14141a"/><circle cx="28" cy="36" r="3.5" fill="#9aa4b0"/>' +
+           '<circle cx="94" cy="36" r="8" fill="#14141a"/><circle cx="94" cy="36" r="3.5" fill="#9aa4b0"/></svg>' +
+           '<span class="qs-name">' + c.name + '</span>' +
+           '<span class="qs-meta">' + c.kw + ' kW · ' + c.kg + ' kg · ' + c.tireLbl + '</span></button>';
+    });
+    h += '</div><div class="qs-label">Circuito</div><div class="qs-chips">';
+    TRACKS.forEach(function(t){
+      h += '<button type="button" class="btn btn-secondary qs-chip" data-track="' + t.id + '" aria-pressed="' + (sel.track === t.id) + '" title="' + t.sub + '">' + t.label + '</button>';
+    });
+    h += '</div><div class="qs-label">Clima</div><div class="qs-chips">';
+    WEATHER.forEach(function(w){
+      h += '<button type="button" class="btn btn-secondary qs-chip" data-weather="' + w.id + '" aria-pressed="' + (sel.weather === w.id) + '">' + w.label + '</button>';
+    });
+    h += '</div><div class="qs-sum" id="qsSum"></div>' +
+         '<button type="button" class="btn btn-primary qs-go" id="qsGo">▶ Conducir</button>' +
+         '<button type="button" class="btn btn-secondary qs-adv" id="qsAdv">⚙ Configuración avanzada</button></div>';
+    host.innerHTML = h;
+    host.querySelector('#qsSum').textContent = summary();
+    host.classList.remove('qs-collapsed');
+  }
+
+  function init(){
+    var host = document.getElementById('quickStart');
+    if (!host) return;
+    load();
+    render();
+    host.addEventListener('click', function(ev){
+      var b = ev.target.closest('button'); if (!b) return;
+      if (b.dataset.car){ sel.car = b.dataset.car; save(); render(); }
+      else if (b.dataset.track){ sel.track = b.dataset.track; save(); render(); }
+      else if (b.dataset.weather){ sel.weather = b.dataset.weather; save(); render(); }
+      else if (b.id === 'qsGo'){ go(); }
+      else if (b.id === 'qsAdv'){
+        var veh = Array.prototype.filter.call(document.querySelectorAll('details.details-panel'), function(x){ return /Vehículo/.test((x.querySelector('summary')||{}).textContent || ''); })[0];
+        if (veh){ veh.open = true; veh.scrollIntoView({ behavior:'smooth', block:'start' }); }
+      }
+      else if (b.id === 'qsToggle'){
+        var col = host.classList.toggle('qs-collapsed');
+        b.textContent = col ? 'Mostrar' : 'Ocultar'; b.setAttribute('aria-expanded', String(!col));
+      }
+    });
+  }
+  return { init:init, apply:apply, go:go, tireFor:tireFor, sel:sel, CARS:CARS, CAR_BTN:CAR_BTN, TRACKS:TRACKS, WEATHER:WEATHER, summary:summary };
+})();
+QuickStart.init();
 
 /* ============================================================
    ControlsPro — mandos analógicos, curvas, haptics, tilt, rumble.
@@ -7144,7 +7879,8 @@ var ControlsPro = {
 
   vibrate: function(pattern){
     if (!this.cfg.hapticEnabled) return;
-    try { if (navigator.vibrate) navigator.vibrate(pattern); } catch(e){}
+    // Los navegadores bloquean vibrate hasta que el usuario toca la página; sin gesto previo no se llama (evita el aviso en consola)
+    try { if (navigator.vibrate && (!navigator.userActivation || navigator.userActivation.hasBeenActive)) navigator.vibrate(pattern); } catch(e){}
   },
 
   feedbackTick: function(){
@@ -9184,7 +9920,7 @@ function runSelfTest(){
   // ---- 25. Silueta de carrocería: el preset de clase manda mientras no se toque mass/engTmax ----
   try {
     var svB = { c:vehicle._bodyClass, sg:vehicle._bodyClassSig };
-    ['hatch', 'sport', 'hyper'].forEach(function(cn){
+    ['hatch', 'sport', 'hyper', 'f1'].forEach(function(cn){
       vehicle._bodyClass = cn; vehicle._bodyClassSig = vehicle.mass + '|' + vehicle.engTmax;
       check('Carrocería: clase forzada "' + cn + '" se respeta', vehicleBodyGeom().cls === cn);
     });
@@ -9192,6 +9928,223 @@ function runSelfTest(){
     check('Carrocería: si mass/engTmax cambiaron, vuelve a la heurística', vehicleBodyGeom().cls !== undefined && vehicle._bodyClassSig !== (vehicle.mass + '|' + vehicle.engTmax));
     vehicle._bodyClass = svB.c; vehicle._bodyClassSig = svB.sg;
   } catch(e){ check('Carrocería sin excepción', false, e.message); }
+
+  // ---- 25b. Preset Fórmula 1: se aplica entero y al salir se restaura lo que cambió ----
+  try {
+    var f1Keys = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
+      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig'];
+    var svF = {}; f1Keys.forEach(function(k){ svF[k] = vehicle[k]; });
+    var svGears = vehicle.gearRatios.slice(), svNW = vehicle.numWheels;
+    var bF1 = document.getElementById('btnCarF1'), bHa = document.getElementById('btnCarHatch');
+    check('F1: existe el botón del preset', !!bF1);
+    if (bF1 && bHa){
+      bF1.click();
+      var gF = vehicleBodyGeom();
+      check('F1: la clase de carrocería es f1', gF.cls === 'f1');
+      check('F1: batalla, masa y neumático de competición', vehicle.wheelbase === 3.4 && vehicle.mass === 800 && vehicle.tireType === 'race');
+      check('F1: las ruedas se reconstruyen con la nueva batalla (ejes a ±wb/2)', currentWheelDefs.length === 4 && Math.abs(Math.abs(currentWheelDefs[0].a) - 1.7) < 1e-9);
+      check('F1: el radio de rueda sale de llanta 18" + 305/40', Math.abs(coefs.R0 - (18*0.0254/2 + 0.305*0.40)) < 0.01);
+      check('F1: morro más largo que en un coche normal (halfL mayor)', gF.halfL > 2.4);
+      check('F1: la caja tiene 6 marchas y el régimen límite es 12000', vehicle.gearRatios.length === 7 && vehicle.engRedline === 12000);
+      bHa.click();
+      check('F1→hatch: batalla/vía/ruedas/neumático/marchas vuelven a lo normal',
+        vehicle.wheelbase === 2.6 && vehicle.track === 1.5 && vehicle.rimDiameterIn === 17 && vehicle.tireType === 'street' &&
+        vehicle.gearRatios[1] === 3.5 && vehicle.Tbrake === 900 && vehicleBodyGeom().cls === 'hatch');
+    }
+    f1Keys.forEach(function(k){ vehicle[k] = svF[k]; });
+    vehicle.gearRatios = svGears; vehicle.numWheels = svNW;
+    applyTireType(vehicle.tireType, false); computeWheelGeometry(); rebuildWheelStructures();
+  } catch(e){ check('Preset F1 sin excepción', false, e.message); }
+
+  // ---- 25c. La potencia de cada preset coincide con la que anuncia su etiqueta ----
+  try {
+    var labelKw = { hatch:165, sport:300, hyper:415, f1:650 };
+    Object.keys(labelKw).forEach(function(cn){
+      var pk = window._estimatePeakKw(window._carClassPresets[cn]);
+      check('Preset ' + cn + ': potencia pico real ' + pk.toFixed(0) + ' kW ≈ ' + labelKw[cn] + ' kW (±6 %)', Math.abs(pk - labelKw[cn]) / labelKw[cn] < 0.06);
+    });
+    check('Velocidad máxima: el límite numérico ya no recorta a 288 km/h', (function(){ var u0 = chassis.u; chassis.u = 100; var ok = chassis.u === 100; chassis.u = u0; return ok; })());
+  } catch(e){ check('Potencias de preset sin excepción', false, e.message); }
+
+  // ---- 25d. Salida desde parado con un coche potente: el control de tracción mantiene la rueda cerca del límite ----
+  try {
+    var keysL = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
+      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig','gearMode','tcsOn','absOn'];
+    var svL = {}; keysL.forEach(function(k){ svL[k] = vehicle[k]; });
+    var svLG = vehicle.gearRatios.slice(), svRun = vehicleRunning, svTh = touchControls.throttle;
+    var bHy = document.getElementById('btnCarHyper');
+    if (bHy){
+      bHy.click();
+      vehicle.tcsOn = true; vehicle.tcsGain = Math.max(vehicle.tcsGain || 0, 3);
+      vehicleRunning = true;
+      resetVehicle({ gear: 1, u: 0, silent: true });
+      vehicle.gearMode = 'AUTO'; vehicle._noCreepUntil = 0; vehicle._launchUntil = 0;
+      var warmB = function(){ currentWheelDefs.forEach(function(w){ var b = getBristle(w.id); if (b) b.T = coefs.tempOptimalC || 75; }); };
+      warmB(); touchControls.throttle = 1;
+      var ratioMax = 0, uAt15 = 0;
+      for (var iL = 0; iL < 90; iL++){
+        stepVehiclePhysics(1/60); warmB();
+        if (iL >= 40){
+          var wL = currentWheelDefs.filter(function(w){ return w.axle === 1; })[0];
+          var vwl = Math.abs(wheelOmega[wL.id]) * coefs.R0, vcl = Math.max(0.5, chassis.u);
+          ratioMax = Math.max(ratioMax, vwl / vcl);
+        }
+      }
+      uAt15 = chassis.u;
+      check('Salida 415 kW: tras 1,5 s la rueda motriz no supera 1,6× la velocidad del coche (pico ' + ratioMax.toFixed(2) + '×)', ratioMax < 1.6);
+      check('Salida 415 kW: a los 1,5 s ya va a más de 80 km/h·0,25 (' + (uAt15*3.6).toFixed(0) + ' km/h)', uAt15*3.6 > 22);
+    }
+    keysL.forEach(function(k){ vehicle[k] = svL[k]; });
+    vehicle.gearRatios = svLG; vehicleRunning = svRun; touchControls.throttle = svTh;
+    applyTireType(vehicle.tireType, false); computeWheelGeometry(); rebuildWheelStructures();
+    resetVehicle({ silent: true });
+    vehicleRunning = svRun;
+  } catch(e){ check('Salida con TCS sin excepción', false, e.message); }
+
+  // ---- 25f. Curva rápida: la carga aero llega al neumático y el giro estacionario es estable ----
+  try {
+    var keysF = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
+      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig','gearMode','tcsOn','absOn','collisionsOn','rearAlphaFactor'];
+    var svF = {}; keysF.forEach(function(k){ svF[k] = vehicle[k]; });
+    var svFG = vehicle.gearRatios.slice(), svFRun = vehicleRunning, svFTh = touchControls.throttle, svFSt = touchControls.steer, svTrk = TRACK;
+    var warmF = function(){ currentWheelDefs.forEach(function(w){ var b = getBristle(w.id); if (b) b.T = coefs.tempOptimalC || 75; }); };
+    var cornerRun = function(btnId, kmh, steer){
+      var b = document.getElementById(btnId); if (!b) return null;
+      b.click(); TRACK = new TrackSystem(); vehicle.collisionsOn = false; vehicleRunning = true;
+      resetVehicle({ gear: 3, u: kmh/3.6, silent: true });
+      vehicle.gearMode = 'AUTO'; warmF();
+      var out = { r1: 0, r2: 0, w: 0, u0: kmh/3.6, fzSum: 0, aeroN: 0, uEnd: 0 };
+      for (var i = 0; i < 60*5; i++){
+        touchControls.steer = i > 30 ? steer : 0;
+        touchControls.throttle = Math.max(0, Math.min(1, 0.25 + (kmh/3.6 - chassis.u) * 0.2));
+        var o = stepVehiclePhysics(1/60); warmF();
+        if (i === 60*3) out.r1 = chassis.r;
+        if (i === 60*5 - 1){
+          out.r2 = chassis.r; out.w = chassis.w; out.uEnd = chassis.u;
+          out.aeroN = chassis._aeroN || 0;
+          Object.keys(o.fzOut).forEach(function(k){ out.fzSum += o.fzOut[k]; });
+        }
+      }
+      return out;
+    };
+    var cH = cornerRun('btnCarHatch', 100, 0.03);
+    if (cH){
+      check('Curva a 100 km/h, hatch, 0,9° de volante: giro estacionario (r ' + cH.r1.toFixed(3) + ' → ' + cH.r2.toFixed(3) + ')',
+        cH.r1 > 0.05 && Math.abs(cH.r2 - cH.r1) < 0.1*cH.r1 + 0.01 && cH.uEnd > 0.8*cH.u0);
+    }
+    var cF = cornerRun('btnCarF1', 250, 0.03);
+    if (cF){
+      var wN = vehicle.mass * 9.81;
+      check('F1 a 250 km/h: la carga aero llega a los neumáticos (ΣFz ' + cF.fzSum.toFixed(0) + ' N ≈ peso ' + wN.toFixed(0) + ' + aero ' + cF.aeroN.toFixed(0) + ')',
+        cF.aeroN > 2500 && Math.abs(cF.fzSum - (wN + cF.aeroN)) < 0.06*(wN + cF.aeroN));
+      check('F1 a 250 km/h, 0,9° de volante: giro estacionario sin trompo (r ' + cF.r1.toFixed(3) + ' → ' + cF.r2.toFixed(3) + ')',
+        cF.r1 > 0.05 && Math.abs(cF.r2 - cF.r1) < 0.1*cF.r1 + 0.01 && cF.uEnd > 0.9*cF.u0);
+    }
+    keysF.forEach(function(k){ vehicle[k] = svF[k]; });
+    vehicle.gearRatios = svFG; vehicleRunning = svFRun; touchControls.throttle = svFTh; touchControls.steer = svFSt; TRACK = svTrk;
+    applyTireType(vehicle.tireType, false); computeWheelGeometry(); rebuildWheelStructures();
+    resetVehicle({ silent: true });
+    vehicleRunning = svFRun;
+  } catch(e){ check('Curva rápida sin excepción', false, e.message); }
+
+  // ---- 25g. Línea de trazada y telemetría CSV ----
+  try {
+    var svTrackG = TRACK, svRL = RacingLine.isEnabled();
+    var cases = [['esses', false], ['oval', true]];
+    cases.forEach(function(cs){
+      if (typeof loadTrackPreset === 'function') loadTrackPreset(cs[0]);
+      var res = RacingLine.compute(TRACK, { mu: 1, mass: 1200, aeroPerV2: 0 });
+      if (!res){ check('Línea de trazada ' + cs[0] + ': se calcula', false); return; }
+      var inside = res.pts.every(function(q){ return Math.abs(q.e) <= TRACK.width/2 - 0.3 + 1e-6; });
+      check('Línea ' + cs[0] + ': ' + (cs[1] ? 'circuito cerrado detectado' : 'circuito abierto detectado'), res.closed === cs[1]);
+      check('Línea ' + cs[0] + ': dentro del ancho y no más larga que el eje (' + res.length.toFixed(0) + ' ≤ ' + res.centerLength.toFixed(0) + ' m)',
+        inside && res.length <= res.centerLength + 0.5);
+      check('Línea ' + cs[0] + ': velocidades objetivo físicas (' + (res.vMin*3.6).toFixed(0) + '–' + (res.vMax*3.6).toFixed(0) + ' km/h)',
+        res.vMin > 3 && res.vMax <= 95.01 && res.vMax > res.vMin);
+    });
+    // Tramo largo de una pista abierta: la carretera no debe cerrarse con una franja hasta el inicio
+    if (typeof loadTrackPreset === 'function') loadTrackPreset('esses');
+    if (trackRoadMesh){
+      var pa = trackRoadMesh.geometry.attributes.position, nPa = pa.count;
+      var dEnd = Math.hypot(pa.getX(nPa-2) - pa.getX(nPa-4), pa.getZ(nPa-2) - pa.getZ(nPa-4));
+      check('Pista abierta: la última estación de la carretera sigue a la anterior (' + dEnd.toFixed(1) + ' m)', dEnd < 12);
+    }
+    check('Línea de trazada: malla creada con el circuito cargado', !RacingLine.isEnabled() || !!RacingLine.getMesh());
+    // Telemetría
+    DriveLog.clear();
+    var oTel = { results: {}, kappasOut: {}, fzOut: {} };
+    currentWheelDefs.forEach(function(w){ oTel.results[w.id] = { Fx: 100, Fy: 200 }; oTel.kappasOut[w.id] = 0.01; oTel.fzOut[w.id] = 3000; });
+    for (var kT = 0; kT < 60; kT++) DriveLog.tick(1/60, oTel);
+    var csvT = DriveLog.toCSV(), linesT = csvT.trim().split('\n');
+    check('Telemetría: 1 s a 60 Hz → 20 muestras (' + DriveLog.count() + ')', DriveLog.count() === 20);
+    var hdrT = linesT[0].split(',');
+    check('Telemetría CSV: cabecera con t,u_kmh,rpm,ay_g y 4 columnas por rueda',
+      hdrT[0] === 't' && hdrT.indexOf('u_kmh') > 0 && hdrT.indexOf('rpm') > 0 && hdrT.indexOf('ay_g') > 0 && hdrT.filter(function(h){ return h.indexOf('Fz_') === 0; }).length === currentWheelDefs.length);
+    check('Telemetría CSV: todas las filas con el mismo nº de columnas',
+      linesT.every(function(l){ return l.split(',').length === hdrT.length; }));
+    for (var kT2 = 0; kT2 < DriveLog.HZ*DriveLog.MAX_ROWS; kT2 += 1){ if (kT2 > 5000) break; DriveLog.tick(1/20, oTel); }
+    check('Telemetría: el búfer tiene tope (' + DriveLog.count() + ' ≤ ' + DriveLog.MAX_ROWS + ')', DriveLog.count() <= DriveLog.MAX_ROWS);
+    DriveLog.clear();
+    check('Telemetría: borrar vacía el registro', DriveLog.count() === 0 && DriveLog.toCSV() === '');
+    TRACK = svTrackG; buildTrackMesh();
+  } catch(e){ check('Línea de trazada / telemetría sin excepción', false, e.message); }
+
+  // ---- 25h. Signo de 'lateral' coherente y LKA que sigue el circuito ----
+  try {
+    var svTrH = TRACK, svLka = vehicle.lkaOn, svColH = vehicle.collisionsOn, svRunH = vehicleRunning, svTh2 = touchControls.throttle, svSt2 = touchControls.steer, svGM = vehicle.gearMode;
+    var tSign = new TrackSystem().build([{type:'straight',length:50},{type:'curve',radius:40,angleDeg:90},{type:'straight',length:50},{type:'curve',radius:40,angleDeg:-90},{type:'straight',length:50}], 10);
+    var latSigns = [25, 80, 150, 230].map(function(sq){
+      var pq = tSign.pointAtS(sq), prj = tSign.projectOntoTrack(pq.x + Math.cos(pq.heading)*2, pq.z - Math.sin(pq.heading)*2);
+      return prj ? prj.lateral : 0;
+    });
+    check('lateral: +2 m hacia la normal da +2 en recta y en curvas a ambos lados (' + latSigns.map(function(v){ return v.toFixed(1); }).join(' / ') + ')',
+      latSigns.every(function(v){ return Math.abs(v - 2) < 0.15; }));
+    document.getElementById('btnCarHatch').click();
+    loadTrackPreset('oval');
+    vehicle.collisionsOn = false; vehicle.lkaOn = true; vehicleRunning = true;
+    resetVehicle({ gear: 3, u: 12, silent: true }); vehicle.gearMode = 'AUTO';
+    var warmH = function(){ currentWheelDefs.forEach(function(w){ var b = getBristle(w.id); if (b) b.T = coefs.tempOptimalC || 75; }); };
+    warmH();
+    var maxLatH = 0, distH = 0;
+    for (var iH = 0; iH < 60*25; iH++){
+      touchControls.steer = 0; touchControls.throttle = Math.max(0, Math.min(1, 0.3 + (12 - chassis.u)*0.3));
+      stepVehiclePhysics(1/60); warmH();
+      if (chassis._trackProj) maxLatH = Math.max(maxLatH, Math.abs(chassis._trackProj.lateral));
+    }
+    distH = chassis._distTraveled || 0;
+    check('LKA sigue el circuito: óvalo a 43 km/h, desvío máx ' + maxLatH.toFixed(2) + ' m < 1,5 y ' + distH.toFixed(0) + ' m recorridos > 200',
+      maxLatH < 1.5 && distH > 200);
+    vehicle.lkaOn = svLka; vehicle.collisionsOn = svColH; vehicleRunning = svRunH; touchControls.throttle = svTh2; touchControls.steer = svSt2; vehicle.gearMode = svGM;
+    TRACK = svTrH; buildTrackMesh();
+    resetVehicle({ silent: true });
+    vehicleRunning = svRunH;
+  } catch(e){ check('LKA / lateral sin excepción', false, e.message); }
+
+  // ---- 25e. Inicio rápido: aplica coche, circuito y clima con los controles de siempre ----
+  try {
+    var qsHost = document.getElementById('quickStart');
+    check('Inicio rápido: existe y tiene 4 coches, circuitos y 4 climas',
+      !!qsHost && qsHost.querySelectorAll('[data-car]').length === 4 && qsHost.querySelectorAll('[data-weather]').length === 4 && qsHost.querySelectorAll('[data-track]').length === QuickStart.TRACKS.length);
+    check('Inicio rápido: cada botón de circuito apunta a un botón que existe',
+      QuickStart.TRACKS.every(function(t){ return !!document.getElementById(t.btn); }));
+    check('Inicio rápido: neumático según clima (seco=el del coche, mojado=lluvia, nieve/hielo=invierno)',
+      QuickStart.tireFor('f1','dry') === 'race' && QuickStart.tireFor('hatch','dry') === 'street' && QuickStart.tireFor('hyper','wet') === 'rain' && QuickStart.tireFor('hatch','snow') === 'winter' && QuickStart.tireFor('f1','ice') === 'winter');
+    var keysQ = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
+      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig','surface'];
+    var svQ = {}; keysQ.forEach(function(k){ svQ[k] = vehicle[k]; });
+    var svQG = vehicle.gearRatios.slice();
+    var rQ = QuickStart.apply({ car:'hyper', track:'none', weather:'wet' });
+    check('Inicio rápido: aplicar "Superdeportivo + mojado" cambia clase, superficie y neumático',
+      rQ.car && vehicleBodyGeom().cls === 'hyper' && vehicle.surface === 'wet' && vehicle.tireType === 'rain');
+    keysQ.forEach(function(k){ vehicle[k] = svQ[k]; });
+    vehicle.gearRatios = svQG;
+    var surfQ = document.getElementById('vSurface'); if (surfQ) surfQ.value = svQ.surface;
+    applyTireType(vehicle.tireType, false); computeWheelGeometry(); rebuildWheelStructures();
+  } catch(e){ check('Inicio rápido sin excepción', false, e.message); }
 
   // ---- 18. showToast no se cuelga con ráfagas de avisos ----
   try {
@@ -9213,6 +10166,9 @@ function runSelfTest(){
     else console.warn('%c✗ %c' + r[1], 'color:#ff6b6b;font-weight:700;', 'color:#f4ead8;');
   });
   console.groupEnd();
+  // Las pruebas cambian y restauran el vehículo por código: re-sincroniza los
+  // sliders y lecturas con el estado real para que no queden valores de prueba.
+  try { if (typeof refreshUIFromVehicle === 'function') refreshUIFromVehicle(); } catch(e){}
   return { pass: pass, fail: fail, results: results };
 }
 
