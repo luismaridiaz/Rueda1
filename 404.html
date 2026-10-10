@@ -577,15 +577,16 @@ input[type=range]:focus-visible{
   flex-direction: column;
   gap: 6px;
   padding: 12px 14px;
-  background: linear-gradient(180deg, rgba(20,16,12,0.92), rgba(20,16,12,0.78));
+  background: linear-gradient(180deg, rgba(20,16,12,0.94), rgba(20,16,12,0.80));
   border: 1px solid var(--accent);
   border-radius: 14px;
   box-shadow: 0 10px 36px rgba(0,0,0,0.6), 0 0 0 1px rgba(232,165,75,0.15);
   font-family: Menlo, Consolas, monospace;
   pointer-events: none;
-  min-width: 168px;
+  min-width: 176px;
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
+  transition: opacity 0.25s ease;
 }
 #hud.visible { display: flex; }
 
@@ -596,14 +597,19 @@ input[type=range]:focus-visible{
   line-height: 1;
 }
 #hud .hud-speed .num {
-  font-size: 38px;
+  font-size: 42px;
   font-weight: 800;
   color: var(--accent);
   letter-spacing: -0.03em;
   text-shadow: 0 0 18px rgba(232,165,75,0.35);
   font-variant-numeric: tabular-nums;
-  min-width: 92px;
+  min-width: 100px;
   text-align: right;
+  transition: color 0.15s ease;
+}
+#hud .hud-speed .num.redline {
+  color: #ff4e4e;
+  text-shadow: 0 0 22px rgba(255,78,78,0.65);
 }
 #hud .hud-speed .unit {
   font-size: 12px;
@@ -611,6 +617,30 @@ input[type=range]:focus-visible{
   font-weight: 600;
   letter-spacing: 0.05em;
 }
+
+#hud .hud-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  margin-top: 2px;
+  position: relative;
+}
+#hud .hud-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #6f9b4a 0%, #e8a54b 65%, #c4472f 92%);
+  transition: width 0.05s linear;
+}
+#hud .hud-bar-fill.redline {
+  background: linear-gradient(90deg, #c4472f 0%, #ff2244 100%);
+  animation: hudRedlinePulse 0.4s ease-in-out infinite alternate;
+}
+@keyframes hudRedlinePulse {
+  from { opacity: 0.7; }
+  to   { opacity: 1; }
+}
+
 #hud .hud-row {
   display: flex;
   justify-content: space-between;
@@ -630,39 +660,44 @@ input[type=range]:focus-visible{
   font-weight: 700;
   color: var(--text-primary);
   font-size: 14px;
-  min-width: 52px;
+  min-width: 56px;
   text-align: right;
 }
-#hud .hud-bar {
-  height: 5px;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.08);
-  overflow: hidden;
-  margin-top: 2px;
+#hud .hud-row .val.gear {
+  font-size: 16px;
+  color: var(--accent);
 }
-#hud .hud-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #6f9b4a, #e8a54b 60%, #c4472f 92%);
-  transition: width 0.06s linear;
-}
+
 #hud .hud-warn {
   display: none;
   align-items: center;
+  justify-content: center;
   gap: 6px;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 10.5px;
+  font-weight: 800;
   padding: 4px 8px;
   border-radius: 6px;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
   animation: hudPulse 0.7s ease-in-out infinite alternate;
+  margin-top: 2px;
 }
 #hud .hud-warn.on { display: flex; }
-#hud .hud-warn.aeb { background: #c4472f; color: #fff; }
-#hud .hud-warn.abs { background: #d4782a; color: #fff; }
-#hud .hud-warn.tcs { background: #6f9b4a; color: #fff; }
-#hud .hud-warn.off { background: #b00020; color: #fff; }
-#hud .hud-warn.hit { background: #ff2244; color: #fff; }
+#hud .hud-warn.aeb  { background: #c4472f; color: #fff; box-shadow: 0 0 12px rgba(196,71,47,0.5); }
+#hud .hud-warn.abs  { background: #d4782a; color: #fff; box-shadow: 0 0 12px rgba(212,120,42,0.5); }
+#hud .hud-warn.tcs  { background: #6f9b4a; color: #fff; box-shadow: 0 0 12px rgba(111,155,74,0.5); }
+#hud .hud-warn.apron { background: #8a7a2a; color: #fff; }
+#hud .hud-warn.off  { background: #b00020; color: #fff; box-shadow: 0 0 14px rgba(176,0,32,0.6); }
+#hud .hud-row .val.t-ok   { color: #6fbf4a; }
+#hud .hud-row .val.t-warn { color: #e0a030; }
+#hud .hud-row .val.t-bad  { color: #e0503a; }
+#hud .tire-bars { display:flex; gap:3px; justify-content:flex-end; margin-bottom:2px; }
+#hud .tire-bars i { display:block; width:14px; height:5px; border-radius:2px; background:#666; }
+#hud .tire-bars i.t-ok   { background:#6fbf4a; }
+#hud .tire-bars i.t-warn { background:#e0a030; }
+#hud .tire-bars i.t-bad  { background:#e0503a; }
+#hud .hud-warn.cold { background: #b8801f; color: #fff; }
+#hud .hud-warn.hit  { background: #ff2244; color: #fff; box-shadow: 0 0 18px rgba(255,34,68,0.7); }
 
 @keyframes hudPulse {
   from { opacity: 0.65; }
@@ -675,17 +710,22 @@ input[type=range]:focus-visible{
     top: calc(58px + env(safe-area-inset-top, 0px));
     right: 8px;
     padding: 8px 10px;
-    min-width: 130px;
-    transform: scale(0.92);
+    min-width: 138px;
+    transform: scale(0.9);
     transform-origin: top right;
   }
-  #hud .hud-speed .num { font-size: 30px; min-width: 72px; }
+  #hud .hud-speed .num { font-size: 32px; min-width: 76px; }
+  #hud .hud-row { font-size: 11px; }
+  #hud .hud-row .val { font-size: 13px; }
 }
 
-/* Con los botones ACELERAR/FRENAR anclados abajo, el HUD se sube un poco */
+/* Con los botones ACELERAR/FRENAR anclados abajo, el HUD se sube un poco.
+   El selector :has() es moderno (Safari 15.4+, Chrome 105+); si te preocupa
+   compatibilidad con iOS viejo, puedes borrar esta regla sin más. */
 body:has(#btnThrottle.btn-anchored) #hud {
   top: auto;
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  transform-origin: bottom right;
 }
 </style>
 </head>
@@ -1164,8 +1204,8 @@ body:has(#btnThrottle.btn-anchored) #hud {
           <input type="range" id="vGripScale" min="0.5" max="3.0" value="2.0" step="0.1"></div>
         <div class="cg level-adjust"><label for="vContact">Modelo de contacto</label>
           <select id="vContact">
-            <option value="dahl">Dahl + Stribeck (recomendado)</option>
-            <option value="dahl_pacejka">Dahl + Pacejka (curva MF)</option>
+            <option value="dahl_pacejka">Dahl + Pacejka (curva MF, recomendado)</option>
+            <option value="dahl">Dahl + Stribeck (sin pico: el ABS no actúa igual)</option>
             <option value="lugre">LuGre dinámico</option>
             <option value="brush">Brush / cerda</option>
             <option value="coulomb">Coulomb suavizado</option>
@@ -1239,7 +1279,7 @@ body:has(#btnThrottle.btn-anchored) #hud {
         <div class="cg"><label for="vAebOn">AEB <span class="v" id="valAebOn">off</span></label>
           <select id="vAebOn"><option value="0">Off</option><option value="1">On</option></select></div>
         <div class="cg level-adjust"><label for="vAebT">AEB TTC <span class="v" id="valAebT">1.4</span> s</label>
-          <input type="range" id="vAebT" min="0.6" max="2.5" value="1.4" step="0.1"></div>
+          <input type="range" id="vAebT" min="0.6" max="2.5" value="2.0" step="0.1"></div>
         <div class="cg level-adjust"><label for="vLead">Coche delante a <span class="v" id="valLead">40</span> m</label>
           <input type="range" id="vLead" min="8" max="80" value="40" step="1"></div>
         <div class="cg"><label for="vAbs">ABS ganancia <span class="v" id="valAbs">100</span>%</label>
@@ -1302,6 +1342,7 @@ body:has(#btnThrottle.btn-anchored) #hud {
       <button class="btn btn-secondary" id="btnResetCar2" style="padding:12px;">↺ Reset posición</button>
       <button class="btn btn-secondary" id="btnCameraMode" style="padding:12px;">🎥 Cámara: persecución</button>
     </div>
+    <label style="display:flex;align-items:center;gap:6px;font-size:12px;margin:6px 0 0 2px;"><input type="checkbox" id="chkPreheat" checked> Precalentar neumáticos al arrancar</label>
     <details class="details-panel" style="margin-top:8px;" open>
       <summary>🎮 Mandos — sensibilidad, curvas, rumble, tilt</summary>
       <div class="details-body">
@@ -1461,7 +1502,7 @@ body:has(#btnThrottle.btn-anchored) #hud {
   <div class="hud-bar"><div class="hud-bar-fill" id="hudRpmBar"></div></div>
   <div class="hud-row">
     <span class="lbl">Marcha</span>
-    <span class="val" id="hudGear">N</span>
+    <span class="val gear" id="hudGear">N</span>
   </div>
   <div class="hud-row">
     <span class="lbl">RPM</span>
@@ -1471,11 +1512,18 @@ body:has(#btnThrottle.btn-anchored) #hud {
     <span class="lbl">TTC</span>
     <span class="val" id="hudTtc">—</span>
   </div>
-  <div class="hud-warn aeb" id="hudWarnAeb">⚠ AEB</div>
-  <div class="hud-warn abs" id="hudWarnAbs">ABS</div>
-  <div class="hud-warn tcs" id="hudWarnTcs">TCS</div>
-  <div class="hud-warn off" id="hudWarnOff">FUERA DE PISTA</div>
-  <div class="hud-warn hit" id="hudWarnHit">💥 CHOQUE</div>
+  <div class="hud-row">
+    <span class="lbl">Neum. °C</span>
+    <span class="val" id="hudTireT">—</span>
+  </div>
+  <div class="tire-bars" id="hudTireBars"></div>
+  <div class="hud-warn aeb"    id="hudWarnAeb">⚠ AEB</div>
+  <div class="hud-warn abs"    id="hudWarnAbs">ABS</div>
+  <div class="hud-warn tcs"    id="hudWarnTcs">TCS</div>
+  <div class="hud-warn apron"  id="hudWarnApron">ROZANDO PIANO</div>
+  <div class="hud-warn off"    id="hudWarnOff">FUERA DE PISTA</div>
+  <div class="hud-warn hit"    id="hudWarnHit">💥 CHOQUE</div>
+  <div class="hud-warn cold"   id="hudWarnCold">NEUMÁTICOS FRÍOS</div>
 </div>
 
 <script>
@@ -2146,7 +2194,7 @@ var vehicle = {
   // que a baja velocidad hacía que el coche "saltara" entre agarre y
   // deslizamiento con un tirón perceptible. Con 0.10 la transición es más
   // progresiva y da mejor sensación en maniobras lentas.
-  contactK: 80000, contactC: 1400, contactModel: 'dahl', stribeckSpeed: 0.10,
+  contactK: 80000, contactC: 1400, contactModel: 'dahl_pacejka', stribeckSpeed: 0.10,
   gripScale: 2.0,
   absOn: true, tcsOn: true, absGain: 2.5, tcsGain: 3.0,
   absTarget: 0.15, tcsLimit: 0.12,
@@ -2161,7 +2209,7 @@ var vehicle = {
   plasticDef: 0,
   accOn: false, accKph: 80, accGap: 2,
   lkaOn: false, lkaGain: 0.7,
-  aebOn: false, aebTtc: 1.4, leadDist: 40, leadSpeed: 12,
+  aebOn: false, aebTtc: 2.0, leadDist: 40, leadSpeed: 12,
   gpsLat0: 40.4168, gpsLon0: -3.7038, gpsAlt0: 650,
   trafficN: 0, trafficKph: 50,
   trafficLanes: 3, trafficMixCar: 70, trafficMixTruck: 15, trafficMixMoto: 15
@@ -2186,14 +2234,19 @@ vehicle.transmission = new Transmission({
   hybridEvThrottleLimit: 0.30,
   batteryCapKWh: 40, batterySOC: 70, batteryMinSOC: 10,
   solarAreaM2: 4, solarEffPct: 22, solarIrradianceWm2: 800,
-  omegaE: 90, _turboSpool: 0, _lastSubDt: 0.005
+  omegaE: 90, _turboSpool: 0, _lastSubDt: 0.005,
+  // Inercia del conjunto motor+volante (kg·m²) y estado del cambio: durante un
+  // cambio el par al eje se corta _shiftDuration s (embrague abierto) y
+  // _shiftLock impide otro cambio automático hasta que pase (anti-hunting).
+  engineInertia: 0.22, _shiftTimer: 0, _shiftDuration: 0.25, _shiftLock: 0, _lastGearSeen: null
 });
 (function attachTransmissionProxy(v){
   var fields = ['gear','gearMode','clutch','gearRatios','finalDrive','revRatio',
     'engineType','engTmax','engRedline','engIdle','engEff','displacementL','cylinders','turboLagS',
     'motorTmaxE','motorPmaxE','reductionRatioE','regenMaxKw','hybridEvThrottleLimit',
     'batteryCapKWh','batterySOC','batteryMinSOC','solarAreaM2','solarEffPct','solarIrradianceWm2',
-    'omegaE','_turboSpool','_lastSubDt'];
+    'omegaE','_turboSpool','_lastSubDt',
+    'engineInertia','_shiftTimer','_shiftDuration','_shiftLock','_lastGearSeen'];
   fields.forEach(function(f){
     Object.defineProperty(v, f, {
       get: function(){ return v.transmission[f]; },
@@ -2348,12 +2401,17 @@ var TRACK_WALL_PRESETS = {
   high:   { k: 520000, dampFactor: 0.25, rest: 0.55 },
   ultra:  { k: 900000, dampFactor: 0.18, rest: 0.72 }
 };
+// apronFloor: factor de agarre al final del arcén (3 m fuera del borde).
+// hardFloor: mínimo absoluto más allá del arcén. Ver wheelOffTrackPenalty().
+// muD del material: la caída de μ tras el pico la aporta el compuesto
+// (vehicle.muDynamic). Un firme rígido (asfalto/hormigón) no la repite; solo
+// los materiales que fluyen (grava, tierra, adoquín) bajan su μ dinámico.
 var SURFACE_MATERIAL = {
-  asphalt:  { muS:1.00, muD:0.85, roughness:1.0, wearFactor:1.0, label:'Asfalto' },
-  concrete: { muS:1.05, muD:0.90, roughness:0.7, wearFactor:0.6, label:'Hormigón' },
-  gravel:   { muS:0.55, muD:0.45, roughness:2.4, wearFactor:1.4, label:'Gravilla' },
-  dirt:     { muS:0.45, muD:0.38, roughness:2.0, wearFactor:1.2, label:'Tierra' },
-  cobble:   { muS:0.80, muD:0.68, roughness:3.0, wearFactor:0.8, label:'Adoquín' }
+  asphalt:  { muS:1.00, muD:1.00, roughness:1.0, wearFactor:1.0, label:'Asfalto',  apronFloor:0.85, hardFloor:0.55 },
+  concrete: { muS:1.05, muD:1.00, roughness:0.7, wearFactor:0.6, label:'Hormigón', apronFloor:0.80, hardFloor:0.50 },
+  gravel:   { muS:0.55, muD:0.45, roughness:2.4, wearFactor:1.4, label:'Gravilla', apronFloor:0.55, hardFloor:0.28 },
+  dirt:     { muS:0.45, muD:0.38, roughness:2.0, wearFactor:1.2, label:'Tierra',   apronFloor:0.50, hardFloor:0.25 },
+  cobble:   { muS:0.80, muD:0.68, roughness:3.0, wearFactor:0.8, label:'Adoquín',  apronFloor:0.75, hardFloor:0.45 }
 };
 // Condición climática: ahora es un multiplicador relativo sobre el material
 // en seco, no un valor absoluto — antes solo tenía sentido asumiendo asfalto.
@@ -3180,9 +3238,18 @@ function applyADAS(dt){
   var lead = vehicle.leadDist != null ? vehicle.leadDist : 40;
   var vLead = leadCar ? leadCar.u : (vehicle.leadSpeed != null ? vehicle.leadSpeed : 12);
   var gapLead = leadCar ? (leadCar.z - chassis.z - 4.2) : (lead - chassis.z);
-  var gap = Math.min(gapWall, gapLead);
-  var closing = gap === gapWall ? v : Math.max(0, v - vLead);
-  var ttc = closing > 0.3 ? gap / closing : 99;
+  // Cada obstáculo se evalúa con SU velocidad relativa y se elige el más
+  // crítico. Antes se tomaba el hueco menor y su cierre, de modo que el coche
+  // "líder" virtual (leadDist/leadSpeed, ~12 m/s) enmascaraba el muro: en
+  // cuanto el coche igualaba esa velocidad el TTC pasaba a 99 y el AEB soltaba
+  // el freno a pocos metros del muro. Un líder ya rebasado (hueco < 0) se ignora.
+  var closeWall = v, closeLead = Math.max(0, v - vLead);
+  var ttcWall = (gapWall < Infinity && closeWall > 0.3) ? gapWall / closeWall : 99;
+  var ttcLead = (gapLead > 0 && closeLead > 0.3) ? gapLead / closeLead : 99;
+  var gap, closing, ttc;
+  if (ttcWall <= ttcLead && ttcWall < 99){ gap = gapWall; closing = closeWall; ttc = ttcWall; vLead = 0; }
+  else if (ttcLead < 99){ gap = gapLead; closing = closeLead; ttc = ttcLead; }
+  else { gap = (gapLead > 0) ? Math.min(gapWall, gapLead) : gapWall; closing = 0; ttc = 99; if (gap === gapWall) vLead = 0; }
   chassis._ttc = ttc;
 
   if (controls._driverBrk && vehicle.accOn){
@@ -3193,7 +3260,7 @@ function applyADAS(dt){
   if (vehicle.aebOn && ttc < (vehicle.aebTtc||1.4) && gap < 80 && v > 1.5){
     chassis._aeb = true;
     var sev = Math.max(0, Math.min(1, ((vehicle.aebTtc||1.4) - ttc) / Math.max(0.2, vehicle.aebTtc||1.4)));
-    controls.brake = Math.max(controls.brake, 0.45 + 0.55*sev);
+    controls.brake = Math.max(controls.brake, 0.7 + 0.3*sev);
     controls.throttle = Math.min(controls.throttle, 0.05);
     if (!chassis._aebWarn){ chassis._aebWarn = true; try{ showToast('AEB TTC '+ttc.toFixed(1)+'s'); }catch(e){} }
   } else {
@@ -3218,7 +3285,14 @@ function applyADAS(dt){
   }
   if (vehicle.lkaOn && v > 2){
     chassis._lka = true;
-    var corr = -(vehicle.lkaGain||0.7) * (0.35*(chassis.x||0) + 0.12*(chassis.w||0));
+    // Control sobre desvío lateral x y rumbo ψ (modelo de bicicleta: x'≈u·ψ,
+    // ψ'≈u/L·δ) con ωn=1.0 rad/s y ζ=0.9. La ley anterior (P sobre x + un
+    // término pequeño en w) no amortiguaba el rumbo: con agarre realista el
+    // coche oscilaba con amplitud creciente (de ±2 m a >15 m).
+    var Lw = Math.max(1, vehicle.wheelbase || 2.6), vL = Math.max(5, v);
+    var psiW = Math.atan2(Math.sin(chassis.psi||0), Math.cos(chassis.psi||0));
+    var k1 = 2 * 0.9 * 1.0 * Lw / vL, k2 = 1.0 * Lw / (vL * vL);
+    var corr = -((vehicle.lkaGain||0.7) / 0.7) * (k1 * psiW + k2 * (chassis.x||0));
     var vibe = 0.008 * (vehicle.lkaGain||0.7) * Math.sin(performance.now()*0.04);
     controls.steerTarget += Math.max(-0.14, Math.min(0.14, corr + vibe));
   }
@@ -3242,7 +3316,11 @@ class DahlStribeckContact {
     const opt = tempOptimalC != null ? tempOptimalC : 75;
     const half = tempWindowC != null ? tempWindowC : 25;
     const d = Math.abs(this.T - opt);
-    const tf = d <= half ? 1.0 : Math.max(0.5, 1 - (d - half) / 45);
+    // Suelo de agarre en frío/sobrecalentado: un neumático de calle (ventana
+    // ancha) no pierde más de ~25%; solo los de ventana estrecha (slick,
+    // < 15 °C) conservan la penalización completa del 50%.
+    const tfFloor = half < 15 ? 0.5 : 0.75;
+    const tf = d <= half ? 1.0 : Math.max(tfFloor, 1 - (d - half) / 45);
     return tf * (1 - 0.35 * Math.max(0, Math.min(1, this.wear)));
   }
   /** cfg: { muStatic, muDynamic, matMuS, matMuD, condMuS, condMuD, tempOptimalC,
@@ -3322,7 +3400,12 @@ class DahlStribeckContact {
       // (μ·Fz) — nunca a la reconstrucción de κ/α desde vsx/vsy a solas,
       // que en deriva pura (vsx=0) da un ángulo inventado (~78°), no el real.
       mu = (vs < 1e-10) ? muS : (muD + (muS - muD) / (1 + (vs/vs0)*(vs/vs0)));
-      Fc = mu * Math.max(60, Fz);
+      // gripScale también aquí: la saturación final (2/π·atan) deja la fuerza
+      // en ~0.5·Fc cuando la cerda está saturada (Fm≈Fc), igual que en la rama
+      // dahl_pacejka. Sin esta escala el modo por defecto ('dahl') solo daba
+      // ~0.25 g al frenar y ~1 m/s² al arrancar. Con gripScale=2.0 el pico
+      // real queda en μ·Fz.
+      Fc = mu * Math.max(60, Fz) * (cfg.gripScale ?? 2.0);
     }
     const gAbs = Math.max(1e-6, Fc);
     let zDotX = 0, zDotY = 0;
@@ -3429,10 +3512,69 @@ function sweepFxKappa(presetCoefs, vx, Fz, n){
   }
   return pts;
 }
-function bristleStep(st, vsx, vsy, Fz, dt, slip){
+/* Penalización de agarre para UNA rueda según lo lejos que está del borde
+   de pista. Gradual y por rueda (antes era un 0.55 binario y global):
+   - dentro de pista: 1.0
+   - arcén (los primeros 3 m fuera): cae en curva cuadrática hasta apronFloor
+   - más allá del arcén: cae hasta hardFloor del material
+   Siempre devuelve un valor en [hardFloor, 1]. */
+function wheelOffTrackPenalty(wheelLateral, halfTrack, material){
+  if (!halfTrack) return 1.0;
+  var overhang = Math.abs(wheelLateral) - halfTrack;
+  if (overhang <= 0) return 1.0;
+  var apronDepth = 3.0;
+  var apronFloor = (material && material.apronFloor != null) ? material.apronFloor : 0.65;
+  var hardFloor  = (material && material.hardFloor  != null) ? material.hardFloor  : 0.35;
+  if (overhang <= apronDepth){
+    var t = overhang / apronDepth;
+    return 1.0 - (1.0 - apronFloor) * t * t;
+  }
+  var beyond = Math.min(1, (overhang - apronDepth) / 3.0);
+  return apronFloor - (apronFloor - hardFloor) * beyond;
+}
+
+/* Distancia lateral (desde el eje de pista) a partir de la cual la barrera
+   empieza a actuar: cuando el BORDE del coche (media vía + media anchura de
+   neumático) toca el límite, no cuando lo hace su centro. Margen de 5 cm. */
+function trackBarrierStart(trackWidth, vehicleTrack, tireWidthMm){
+  var carHalfWidth = (vehicleTrack || 1.5) / 2 + (tireWidthMm || 215) / 2000;
+  return Math.max(0.5, (trackWidth || 10) / 2 - carHalfWidth - 0.05);
+}
+
+/* Estado del coche respecto al borde de pista, con el MISMO criterio que la
+   barrera (borde del coche, no su centro). Lo usan el HUD y el aviso de
+   salida, para que no discrepen entre sí.
+   apron: el borde del coche ya ha pasado la línea pero el centro todavía no.
+   off:   el centro del coche ha cruzado el borde. */
+function trackEdgeState(){
+  if (typeof TRACK === 'undefined' || !TRACK.segs.length || !chassis._trackProj) return { apron:false, off:false };
+  var halfTrack = (TRACK.width||10) / 2;
+  var carHalfWidth = (vehicle.track||1.5) / 2 + (vehicle.tireWidthMm||215) / 2000;
+  var lat = Math.abs(chassis._trackProj.lateral);
+  return { apron: (lat + carHalfWidth > halfTrack && lat <= halfTrack), off: lat > halfTrack };
+}
+
+/* Dirección unitaria que va del punto más cercano del eje de pista hacia el
+   coche (hacia FUERA). Vale para recta, curva y clotoide. La barrera empuja
+   en sentido contrario. Antes se derivaba del signo de 'lateral', que en las
+   curvas a derechas (dir=-1) está invertido y la barrera empujaba hacia fuera. */
+function trackOutwardDir(carX, carZ, projPx, projPz){
+  var dx = carX - projPx, dz = carZ - projPz;
+  var d = Math.hypot(dx, dz);
+  if (d < 1e-6) return null;
+  return { nx: dx / d, nz: dz / d, d: d };
+}
+
+function bristleStep(st, vsx, vsy, Fz, dt, slip, wheelCtx){
   var cond = SURFACE[vehicle.surface||'dry'] || SURFACE.dry;
   var mat = SURFACE_MATERIAL[vehicle.surfaceMaterial||'asphalt'] || SURFACE_MATERIAL.asphalt;
-  var offTrackPenalty = (typeof chassis !== 'undefined' && chassis._onTrack === false) ? 0.55 : 1.0;
+  var offTrackPenalty = 1.0;
+  if (wheelCtx && wheelCtx.lateral != null && typeof TRACK !== 'undefined' && TRACK.segs.length){
+    offTrackPenalty = wheelOffTrackPenalty(wheelCtx.lateral, (TRACK.width||10) / 2, mat);
+  } else if (typeof chassis !== 'undefined' && chassis._onTrack === false){
+    // Sin contexto de rueda: conservador, pero ya no el 0.55 de antes.
+    offTrackPenalty = 0.7;
+  }
   var compoundGrip = ((coefs.pDx1 != null ? coefs.pDx1 : 1.0) + (coefs.pDy1 != null ? coefs.pDy1 : 1.0)) / 2;
   return st.compute(vsx, vsy, Fz, dt, {
     muStatic: (vehicle.muStatic || 1) * compoundGrip, muDynamic: (vehicle.muDynamic || 0.85) * compoundGrip,
@@ -3446,9 +3588,9 @@ function bristleStep(st, vsx, vsy, Fz, dt, slip){
   }, slip);
 }
 
-function stepWheel(tireObj, vsx, vsy, Fz, dt, id, slip){
+function stepWheel(tireObj, vsx, vsy, Fz, dt, id, slip, wheelCtx){
   var st = getBristle(id || '_bench');
-  var r = bristleStep(st, vsx, vsy, Fz, dt, slip);
+  var r = bristleStep(st, vsx, vsy, Fz, dt, slip, wheelCtx);
   if (tireObj){ tireObj.FxAct = r.Fx; tireObj.FyAct = r.Fy; }
   return r;
 }
@@ -3458,7 +3600,13 @@ window.addEventListener('keydown', function(e){ keys[e.key.toLowerCase()] = true
 window.addEventListener('keyup', function(e){ keys[e.key.toLowerCase()] = false; });
 
 var _gearUpWas=false, _gearDownWas=false;
-function readControls(dt){
+/* Entrada del conductor: se lee UNA vez por frame (teclado/mando/táctil, con
+   el dt real del frame para la rampa del volante de teclado). Deja guardados
+   los valores BASE (pedales y volante crudos, antes de ADAS) en
+   controls._baseThr/_baseBrk/_baseSteerTarget. La lógica que depende del
+   estado del coche (ADAS, EPS, velocidad de volante) va aparte en
+   applyControlLogic(), que corre en cada substep de física. */
+function readRawInput(dt){
   if (controls._replayOverride){
     // Replay activo: no leas input real, usa lo que dejó ReplayLap.tick
     // en controls.throttle/brake/steerTarget. Se sigue aplicando el resto
@@ -3494,6 +3642,11 @@ function readControls(dt){
   if (vehicleRunning && (vehicle.gearMode||'AUTO') !== 'MANUAL' && controls.brake < 0.05 && !blockCreep){
     var creep = 0.20;
     if (vehicle._launchUntil && nowMs < vehicle._launchUntil) creep = 0.45;
+    // El creep de un automático solo existe a baja velocidad (par de ralentí
+    // con el convertidor): se desvanece entre ~5 y ~12 km/h. Antes valía 0.20
+    // a cualquier velocidad y anulaba el freno motor al soltar el gas.
+    var vCreep = Math.hypot(chassis.u||0, chassis.w||0);
+    creep *= Math.max(0, Math.min(1, (3.5 - vCreep) / 2.0));
     controls.throttle = Math.max(controls.throttle, creep);
   }
 
@@ -3511,20 +3664,41 @@ function readControls(dt){
     controls.brake = Math.max(controls.brake, ControlsPro._tiltBrake || 0);
   }
   }
-  applyADAS(dt);
+  controls._baseThr = controls.throttle;
+  controls._baseBrk = controls.brake;
+  controls._baseSteerTarget = controls.steerTarget;
+}
+
+/* Lógica de control que depende del estado real del coche. Se llama DENTRO
+   del bucle de substeps con el subDt real, así ADAS, EPS y la velocidad del
+   volante se actualizan a la frecuencia de la física (~200 Hz) y no a la del
+   frame. applyADAS NO es idempotente (LKA suma al steerTarget, ACC escala
+   throttle/brake), por eso cada substep parte de los valores base. */
+function applyControlLogic(subDt){
+  controls.throttle = controls._baseThr || 0;
+  controls.brake = controls._baseBrk || 0;
+  controls.steerTarget = controls._baseSteerTarget || 0;
+  applyADAS(subDt);
   var vAbs = Math.hypot(chassis.u||0, chassis.w||0);
   var speedFac = Math.exp(-vAbs * 0.06);
   var assist = (vehicle.epsOn ? (vehicle.epsAssist||0.7) : 0.25) * (0.35 + 0.65*speedFac);
-  var steerRate = 1.6 + 4.5 * assist;
+  // Velocidad de volante no lineal: más rápida cerca del centro, progresiva
+  // hacia el tope.
+  var steerMaxRad = Math.max(0.01, vehicle.steerMaxDeg * Math.PI/180);
+  var steerMag = Math.min(1, Math.abs(controls.steerRad) / steerMaxRad);
+  var sensitivity = 1.0 + 0.9 * (1.0 - steerMag * steerMag);
+  var steerRate = (1.6 + 4.5 * assist) * sensitivity;
   var diff = controls.steerTarget - controls.steerRad;
-  var maxStep = steerRate*dt;
+  var maxStep = steerRate*subDt;
   controls.steerRad += Math.max(-maxStep, Math.min(maxStep, diff));
   if (vehicle.epsOn && Math.abs(controls.steerTarget) < 0.02){
     var ret = (vehicle.epsReturn||0.55) * (0.4 + 0.6*Math.min(1, vAbs/12));
-    controls.steerRad *= Math.max(0, 1 - ret * dt * 2.2);
+    controls.steerRad *= Math.max(0, 1 - ret * subDt * 2.2);
   }
   chassis._eps = assist;
 }
+/* Compatibilidad: llamada de una sola vez (ya no la usa el bucle de física). */
+function readControls(dt){ readRawInput(dt); applyControlLogic(dt); }
 
 /* ===== EXTENDED VEHICLE DYNAMICS (lumped) ===== */
 /* ============================================================
@@ -3535,7 +3709,9 @@ function readControls(dt){
    test lo detecta solo.
    ============================================================ */
 var BRAKE_EFFECTIVENESS_OM_THRESHOLD = 0.35; // rad/s de rueda donde el freno ya satura a plena eficacia
-var BRAKE_SPLIT_FRONT = 0.55, BRAKE_SPLIT_REAR = 0.30;
+// Suman 1.0: con 0.55+0.30 el par total solo daba ~0.83 g, por debajo de lo que
+// el neumático puede aportar. Reparto 65/35 (el eje delantero gana carga al frenar).
+var BRAKE_SPLIT_FRONT = 0.65, BRAKE_SPLIT_REAR = 0.35;
 function brakeEffectiveness(om){
   return Math.min(1, Math.abs(om) / BRAKE_EFFECTIVENESS_OM_THRESHOLD);
 }
@@ -3546,6 +3722,26 @@ function computeBrakeTorque(brakeCmd, TbrakeMax, regen, om, isFrontWheel){
 }
 // Hold a baja velocidad: factor de decaimiento por substep (no snap a 0).
 var HOLD_DECAY_FACTOR = 0.85;
+
+/* Momento de cabeceo sobre la masa suspendida (θ>0 = morro arriba). Función pura
+   para poder comprobar el signo en el self-test: frenar (Fx<0) → negativo →
+   el morro se hunde y el eje delantero gana carga. */
+/* Signo del par al eje. En marcha atrás (gear<0) con gas el par siempre empuja
+   hacia atrás. En marchas de avance NO se fuerza: la regla anterior ponía par
+   negativo con cualquier marcha si el coche iba hacia atrás (u<-0.5) y gas
+   >0.1, así que tras un choque el creep lo aceleraba hacia atrás (de -3.7 a
+   -8 m/s) en vez de frenarlo. */
+function shaftTorqueSign(Tshaft, gear, u, throttle, Te, wDriven){
+  if (gear < 0 && throttle > 0.1) return -Math.abs(Tshaft);
+  // Freno motor (Te<0, fricción interna): siempre OPONE al giro de las ruedas.
+  // Tshaft = Te·i tiene signo fijo, así que rodando hacia atrás en una marcha
+  // de avance (p.ej. tras un choque) empujaba hacia atrás: el coche se
+  // aceleraba solo de -3.8 a -6 m/s sin gas.
+  if (Te != null && Te < 0 && wDriven != null && Math.abs(wDriven) > 0.5) return -(wDriven > 0 ? 1 : -1) * Math.abs(Tshaft);
+  return Tshaft;
+}
+
+function pitchMoment(MpitchF, FxTotal, h){ return MpitchF + FxTotal * h; }
 
 function trapezoidSteerAngles(steerRad, wheelDefs, p){
   var out = {};
@@ -3732,8 +3928,31 @@ Transmission.prototype.autoShift = function(rpm, throttle, chassisU){
     if (throttle > 0.08 && u >= -0.4) g = 1;
     return g;
   }
-  if (throttle > 0.15 && rpm > red * 0.88 && g < 6) g++;
-  if (rpm < (p.engIdle || 850) * 2.1 && g > 1) g--;
+  // Mapa de cambios por régimen y carga, con histéresis:
+  //  - Subida: con poco gas se sube pronto (economía); a fondo se aprovecha
+  //    el rango alto del motor. up = red*(0.52 + 0.38*thr) → ~55%…90% de la
+  //    zona roja. (El doc original lo planteaba al revés: con poco gas
+  //    subía MÁS tarde.)
+  //  - Bajada: down = idle*(1.9 + 1.1*thr) (reductora más pronto a fondo).
+  //  - Antes de subir se predice el régimen tras el cambio: si caería por
+  //    debajo de la zona de reducción (+10%) no se sube → evita el vaivén.
+  //  - _shiftLock (lo gestiona el integrador) impone un tiempo mínimo entre
+  //    cambios; solo se ignora para reducir si el motor se está ahogando.
+  var idle = p.engIdle || 850;
+  var thr = Math.max(0, Math.min(1, throttle || 0));
+  var upThr = red * (0.52 + 0.38 * thr);
+  var downThr = idle * (1.9 + 1.1 * thr);
+  var locked = (p._shiftLock || 0) > 0;
+  if (!locked && thr > 0.15 && rpm > upThr && g < 6){
+    var okUp = true;
+    if (typeof p.gearRatioOf === 'function'){
+      var rCur = Math.abs(p.gearRatioOf(g, p.gearRatios)), rNext = Math.abs(p.gearRatioOf(g + 1, p.gearRatios));
+      if (rCur > 0 && rNext > 0 && rpm * rNext / rCur < downThr * 1.1) okUp = false;
+    }
+    if (okUp) g++;
+  } else if (g > 1 && rpm < downThr && (!locked || rpm < idle * 1.5)){
+    g--;
+  }
   return g;
 };
 function autoShift(p, rpm, throttle){ return Transmission.prototype.autoShift.call(p, rpm, throttle, chassis.u||0); }
@@ -3787,7 +4006,7 @@ function stepVehicle(dt){
    export todavía — eso exigiría además generalizar el export a N ruedas
    (hoy asume 4 fijas) para no perder los camiones multieje. */
 function stepVehiclePhysics(dt){
-  readControls(dt);
+  readRawInput(dt);
   if (controls._gearUp){ vehicle.gear = Math.min(6, currentGear()+1); controls._gearUp = false; }
   if (controls._gearDown){ vehicle.gear = Math.max(-1, currentGear()-1); controls._gearDown = false; }
 
@@ -3818,6 +4037,7 @@ function stepVehiclePhysics(dt){
   }
 
   for (var sub=0; sub<nSub; sub++){
+    applyControlLogic(subDt);
     var steerMap = trapezoidSteerAngles(controls.steerRad, currentWheelDefs, vehicle);
     var v = Math.sqrt(chassis.u*chassis.u + chassis.w*chassis.w);
 
@@ -3949,9 +4169,25 @@ function stepVehiclePhysics(dt){
     var wheelImpliedRpm = Math.abs(wDriven) * Math.abs(iTot) * 60 / (2*Math.PI);
     var rpm = Math.max(idleRpm, wheelImpliedRpm);
     vehicle.omegaE = rpm * 2 * Math.PI / 60;
+    var tr = vehicle.transmission;
+    tr._shiftTimer = Math.max(0, (tr._shiftTimer || 0) - subDt);
+    tr._shiftLock = Math.max(0, (tr._shiftLock || 0) - subDt);
     if (!isEV){
-      vehicle.gear = autoShift(vehicle.transmission, rpm, controls.throttle);
+      // El mapa de cambios usa un régimen "de vehículo": con la rueda
+      // patinando en la salida el régimen real se dispara y provocaba subir
+      // 1→5 en medio segundo a 1.5 km/h. Se limita al implícito por la
+      // velocidad del coche (+25%) para decidir el cambio.
+      var vehRpm = Math.abs(chassis.u || 0) / R0 * Math.abs(iTot) * 60 / (2*Math.PI);
+      var rpmShift = Math.min(rpm, vehRpm * 1.25 + idleRpm);
+      vehicle.gear = autoShift(tr, rpmShift, controls.throttle);
       gear = currentGear();
+      // Cambio entre marchas de avance (auto o manual): corte de par y
+      // bloqueo anti-vaivén.
+      if (tr._lastGearSeen != null && gear !== tr._lastGearSeen && gear > 0 && tr._lastGearSeen > 0){
+        tr._shiftTimer = tr._shiftDuration || 0.25;
+        tr._shiftLock = 0.8;
+      }
+      tr._lastGearSeen = gear;
       iTot = gearRatioOf(gear, ratios) * (vehicle.finalDrive || 3.7);
       wheelImpliedRpm = Math.abs(wDriven) * Math.abs(iTot) * 60 / (2*Math.PI);
       rpm = Math.max(idleRpm, wheelImpliedRpm);
@@ -3974,8 +4210,22 @@ function stepVehiclePhysics(dt){
     } else {
       Te = (Math.abs(iTot) > 0.01) ? combustionTorqueNm(rpm, controls.throttle, vehicle.transmission) * clutchF : 0;
     }
+    // Corte de par durante el cambio: 0 mientras dura el embrague abierto y
+    // rampa de recuperación en los últimos 80 ms.
+    var stm = tr._shiftTimer || 0;
+    var shiftF = stm <= 0 ? 1 : (stm > 0.08 ? 0 : 1 - stm / 0.08);
+    Te *= shiftF;
+    // Inercia del motor reflejada a las ruedas motrices (Ie·i²). Es lo que
+    // hace que en marchas cortas el coche "pese" más al acelerar y que el
+    // motor devuelva energía al soltar. Acoplamiento parcial por debajo de
+    // ralentí (embrague/convertidor patinando) y nulo durante el cambio.
+    var Ie = Math.max(0.01, (vehicle.engineInertia != null ? vehicle.engineInertia : 0.22) * (isEV ? 0.4 : 1));
+    var slipCoupling = isEV ? 1 : Math.max(0, Math.min(1, (wheelImpliedRpm - 0.6*idleRpm) / (0.6*idleRpm)));
+    var coupleI = clutchF * (stm > 0 ? 0 : 1) * slipCoupling;
+    var IwDrive = Iw + Ie * iTot * iTot * coupleI / nDriven;
+    chassis._IrefEng = Ie * iTot * iTot * coupleI;
     var Tshaft = Te * iTot * (vehicle.engEff || 0.9);
-    if (chassis.u < -0.5 && controls.throttle > 0.1) Tshaft = -Math.abs(Tshaft);
+    Tshaft = shaftTorqueSign(Tshaft, gear, chassis.u, controls.throttle, Te, wDriven);
 
     var TperAxle = {};
     var nDriveAx = Object.keys(driveAxles).length || 1;
@@ -4019,7 +4269,26 @@ function stepVehiclePhysics(dt){
       var vsy = vy_t;
       var kappa = vsx / Math.max(Math.abs(uLocal), 0.25);
       var slipInfo = { kappa: kappa, alpha: alpha, gamma: gammaRad };
-      var r = stepWheel(wheels[w.id], vsx, vsy, Fz, subDt, w.id, slipInfo);
+      // Posición lateral real de ESTA rueda sobre la pista, para que la
+      // penalización de agarre distinga ruedas interiores y exteriores.
+      // Marco: local x (w.b) → mundo (cosψ, -sinψ); local z (w.a) → (sinψ, cosψ)
+      // (mismo que la escena 3D y que vxW/vzW de la barrera). Solo se proyecta
+      // si la rueda puede estar fuera: el desplazamiento máximo de la rueda
+      // respecto al centro es hypot(a,b), así que si |lateral|+eso < semiancho
+      // está seguro dentro. Usa la proyección del subpaso anterior (el coche
+      // se mueve < 0.5 m por subpaso), por eso el margen de 0.5 m.
+      var wheelCtx = null;
+      if (TRACK.segs.length && chassis._trackProj){
+        var halfTrackW = (TRACK.width||10) / 2;
+        if (Math.abs(chassis._trackProj.lateral) + Math.hypot(w.a, w.b) + 0.5 > halfTrackW){
+          var cPsi = Math.cos(chassis.psi||0), sPsi = Math.sin(chassis.psi||0);
+          var wheelProj = TRACK.projectOntoTrack(
+            chassis.x + w.b*cPsi + w.a*sPsi,
+            chassis.z - w.b*sPsi + w.a*cPsi);
+          if (wheelProj) wheelCtx = { lateral: wheelProj.lateral };
+        }
+      }
+      var r = stepWheel(wheels[w.id], vsx, vsy, Fz, subDt, w.id, slipInfo, wheelCtx);
       var stT = getBristle(w.id);
       var Tamb = vehicle.ambientTemp || 25;
       // Rodadura primero: su potencia SÍ calienta (antes se calculaba después y no entraba).
@@ -4062,15 +4331,19 @@ function stepVehiclePhysics(dt){
         var ac = getWheelCtl(w.id).abs;
         ac.active = true; absCtl.active = true;
         var errA = brakeSlip - (vehicle.absTarget||0.15);
-        ac.integral = Math.max(-0.5, Math.min(0.5, ac.integral + errA * subDt));
-        ac.phase += subDt * 10 * 2 * Math.PI;
-        var mod = 0.55 + 0.45 * Math.sin(ac.phase);
-        var pGain = (vehicle.absGain||2.5) * errA + ac.integral * 0.5;
-        brakeCmd = Math.max(0.12, Math.min(1, brakeCmd * (1 - Math.max(0, pGain) * mod)));
+        // Presión de freno como estado (0.12..1): se libera mientras el
+        // deslizamiento supera el objetivo y se recupera cuando baja de él.
+        // El modulador anterior (seno fijo a 10 Hz) soltaba el freno de forma
+        // ciega y dejaba las delanteras oscilando entre κ=-0.2 y -0.5, muy
+        // por encima del pico.
+        if (ac.p == null) ac.p = 1;
+        ac.p = Math.max(0.12, Math.min(1, ac.p - (vehicle.absGain||2.5) * 40 * errA * subDt));
+        brakeCmd = brakeCmd * ac.p;
       } else {
         var ac0 = getWheelCtl(w.id).abs;
         ac0.active = false;
         ac0.integral *= 0.92;
+        if (ac0.p != null) ac0.p += (1 - ac0.p) * Math.min(1, 20 * subDt);
       }
       // TCS: slip de tracción
       var driveSlip = Math.max(0, slipLong);
@@ -4102,7 +4375,7 @@ function stepVehiclePhysics(dt){
       var Td = Tdrive[w.id] || 0;
       var tcNow = getWheelCtl(w.id).tcs;
       if (tcNow.active) Td *= (1 - tcNow.cut * 0.85);
-      var omDot = (Td + Tbr - My - r.Fx * R0) / Iw;
+      var omDot = (Td + Tbr - My - r.Fx * R0) / (driveAxles[w.axle] ? IwDrive : Iw);
       om += omDot * subDt;
       if (controls.brake > 0.85 && Math.abs(uLocal) < 0.25 && (vehicle.absGain||0) < 0.05)
         om *= Math.max(0, 1 - 8*subDt);
@@ -4166,31 +4439,26 @@ function stepVehiclePhysics(dt){
       var wm = TRACK_WALL_PRESETS[vehicle.trackWallMode];
       if (wm){
         var lat = chassis._trackProj.lateral;
-        var halfW = (TRACK.width||10) / 2;
+        // La barrera actúa cuando el BORDE del coche (no su centro) cruza el
+        // límite de pista. Antes usaba |lat| > ancho/2 y el coche llevaba
+        // media anchura fuera cuando empezaba a reaccionar.
+        var barrierStart = trackBarrierStart(TRACK.width, vehicle.track, vehicle.tireWidthMm);
         var absLat = Math.abs(lat);
-        if (absLat > halfW){
-          var overlap = Math.min(1.2, absLat - halfW);
-          var signLat = lat > 0 ? 1 : -1;
-          var seg = chassis._trackProj.seg;
+        var outDir = (absLat > barrierStart)
+          ? trackOutwardDir(chassis.x, chassis.z, chassis._trackProj.px, chassis._trackProj.pz)
+          : null;
+        if (outDir){
+          var overlap = Math.min(1.2, absLat - barrierStart);
+          // (perpX, perpZ): unitario hacia FUERA de la pista, desde el punto
+          // más cercano del eje. Sirve para recta, curva y clotoide.
+          var perpX = outDir.nx, perpZ = outDir.nz;
 
-          var perpX, perpZ;
-          if (seg.type === 'straight'){
-            perpX = Math.cos(seg.heading);
-            perpZ = -Math.sin(seg.heading);
-          } else {
-            var cc = TRACK.curveCenterOf(seg);
-            var ddx = chassis.x - cc.cx, ddz = chassis.z - cc.cz;
-            var dC = Math.hypot(ddx, ddz) || 0.001;
-            perpX = ddx / dC;
-            perpZ = ddz / dC;
-          }
-
-          var pushX = -signLat * perpX;
-          var pushZ = -signLat * perpZ;
+          var pushX = -perpX;   // la barrera empuja hacia el eje
+          var pushZ = -perpZ;
 
           var vxW = chassis.u * spsi + chassis.w * cpsi;
           var vzW = chassis.u * cpsi - chassis.w * spsi;
-          var vInto = signLat * (vxW * perpX + vzW * perpZ);
+          var vInto = vxW * perpX + vzW * perpZ; // >0: el coche va hacia fuera
           var vIntoPos = Math.max(0, vInto);
 
           var k = wm.k;
@@ -4348,7 +4616,11 @@ function stepVehiclePhysics(dt){
 
     var h = vehicle.cgHeight;
     var FzNet = FzSum - m*g;
-    var MyNet = MpitchF - FxTotal * h;
+    // Signo del momento de cabeceo: con zBody = zS + a·θ (θ>0 = morro arriba),
+    // Fx<0 (frenada) debe dar momento negativo (el morro se hunde y el eje
+    // delantero gana carga) y Fx>0 (aceleración) positivo (el coche se sienta).
+    // Antes era -FxTotal·h, al revés: frenando se descargaba el eje delantero.
+    var MyNet = pitchMoment(MpitchF, FxTotal, h);
     var MxNet = MrollF + FyTotal * h;
     var Ix = Math.max(80, vehicle.Ix || 450);
     var Iy = Math.max(120, vehicle.Iy || 1300);
@@ -4396,7 +4668,13 @@ function vehicleBodyGeom(){
   var isHatch = !isTruck && !isHyper && !isSport;
 
   var cls;
-  if (isTruck) cls = 'truck';
+  // Si el coche viene de un preset de clase y mass/engTmax no se han tocado
+  // desde entonces, manda la clase del preset (con la heurística, "Hatch
+  // deportivo" salía como sport y "Deportivo" como hyper: dos presets con la
+  // misma silueta).
+  var forcedOk = vehicle._bodyClass && vehicle._bodyClassSig === (vehicle.mass + '|' + vehicle.engTmax);
+  if (forcedOk && (vehicle._bodyClass === 'hatch' || vehicle._bodyClass === 'sport' || vehicle._bodyClass === 'hyper' || vehicle._bodyClass === 'truck')) cls = vehicle._bodyClass;
+  else if (isTruck) cls = 'truck';
   else if (isHyper) cls = 'hyper';
   else if (isSport) cls = 'sport';
   else cls = 'hatch';
@@ -4437,6 +4715,7 @@ function resetVehicle(opts){
   vehicle._thrSlide = 0; vehicle._brkSlide = 0;
   vehicle._launchUntil = 0;
   vehicle._noCreepUntil = 0;
+  vehicle._shiftTimer = 0; vehicle._shiftLock = 0; vehicle._lastGearSeen = null;
   vehicle.plasticDef = 0;
   var u0 = opts.u || 0;
   chassis.u = u0;
@@ -5529,6 +5808,7 @@ function bindVehicleControls(){
     var preset = CAR_CLASS_PRESETS[cls];
     if (!preset) return;
     Object.keys(preset).forEach(function(k){ vehicle[k] = preset[k]; });
+    vehicle._bodyClass = cls; vehicle._bodyClassSig = vehicle.mass + '|' + vehicle.engTmax;
     (typeof map !== 'undefined' ? map : []).forEach(function(cfg){
       if (!(cfg.key in preset)) return;
       var el = document.getElementById(cfg.id);
@@ -6081,6 +6361,10 @@ function toggleVehicleRunning(){
   if (t) t.classList.toggle('btn-anchored', vehicleRunning);
   if (b) b.classList.toggle('btn-anchored', vehicleRunning);
   if (vehicleRunning){
+    var chkPre = document.getElementById('chkPreheat');
+    if (chkPre && chkPre.checked && typeof coefs !== 'undefined'){
+      currentWheelDefs.forEach(function(w){ getBristle(w.id).T = (coefs.tempOptimalC != null ? coefs.tempOptimalC : 75); });
+    }
     vehicle._launchUntil = performance.now() + 2500;
     showToast('🏁 En marcha — creep ON. Botones fijos abajo');
   }
@@ -6387,8 +6671,12 @@ function showToast(msg){
   el.appendChild(closeBtn);
   stack.appendChild(el);
 
-  while (stack.children.length > TOAST_MAX_VISIBLE){
-    dismissToast(stack.firstChild);
+  // Solo cuentan los avisos que no están ya saliendo: dismissToast quita el
+  // nodo con retardo (260 ms), así que iterar sobre stack.children era un
+  // bucle infinito (congelaba la página) al mostrar un 4º aviso seguido.
+  var liveToasts = Array.prototype.filter.call(stack.children, function(c){ return !c._dismissing; });
+  while (liveToasts.length > TOAST_MAX_VISIBLE){
+    dismissToast(liveToasts.shift());
   }
 
   requestAnimationFrame(function(){
@@ -8304,9 +8592,11 @@ var ReplayLap = (function(){
           recordAccum -= sampleInterval;
           recordBuffer.push({
             t: recordBuffer.length === 0 ? 0 : recordBuffer[recordBuffer.length-1].t + sampleInterval,
-            throttle: controls.throttle,
-            brake: controls.brake,
-            steer: controls.steerTarget / (vehicle.steerMaxDeg * Math.PI/180),
+            // Valores BASE (antes de ADAS): al reproducir, ADAS vuelve a
+            // aplicarse por encima, así no se duplica su efecto.
+            throttle: controls._baseThr != null ? controls._baseThr : controls.throttle,
+            brake: controls._baseBrk != null ? controls._baseBrk : controls.brake,
+            steer: (controls._baseSteerTarget != null ? controls._baseSteerTarget : controls.steerTarget) / (vehicle.steerMaxDeg * Math.PI/180),
             _gearUp: !!controls._gearUp,
             _gearDown: !!controls._gearDown
           });
@@ -8538,6 +8828,13 @@ function runSelfTest(){
     check('Hold decae por debajo de 0.02 en ~10 frames', vTest < 0.02, 'v tras 10 frames=' + vTest.toFixed(4));
   } catch(e){ check('Hold (constante real) sin excepción', false, e.message); }
 
+  // Las secciones 12–14 comparan magnitudes absolutas (p. ej. ~3998 N), que
+  // dependen de los coeficientes del neumático. En la app real esos
+  // coeficientes cambian (muScale, preset elegido en la UI), así que se fijan
+  // a los de referencia durante estas pruebas y se restauran al terminar.
+  var _savedShapeC = tireShape.c;
+  tireShape.c = defaultCoefs();
+
   // ---- 12. dahl_pacejka: peak real (Bloque Pacejka) ----
   try {
     function settledFyPacejka(alphaDeg){
@@ -8612,6 +8909,238 @@ function runSelfTest(){
     check('gripScale no cambia la FORMA: el pico en 10° sigue por encima de 30° con cualquier escala',
           f10_g2 > f30_g2, 'Fy(10°)=' + f10_g2.toFixed(0) + ' Fy(30°)=' + f30_g2.toFixed(0));
   } catch(e){ check('gripScale sin excepción', false, e.message); }
+
+  tireShape.c = _savedShapeC; // restaura los coeficientes reales de la app
+
+  // ---- 15. Penalización gradual por rueda (funciones reales) ----
+  try {
+    var matA = SURFACE_MATERIAL.asphalt, matG = SURFACE_MATERIAL.gravel;
+    var hT = 5;
+    check('Penalización: rueda dentro de pista = 1.0', wheelOffTrackPenalty(4.9, hT, matA) === 1.0);
+    check('Penalización: justo en el borde = 1.0', wheelOffTrackPenalty(5.0, hT, matA) === 1.0);
+    check('Penalización: simétrica (lateral negativo = positivo)',
+          Math.abs(wheelOffTrackPenalty(-6.5, hT, matA) - wheelOffTrackPenalty(6.5, hT, matA)) < 1e-12);
+    var monoOk = true, prevPen = 1.0;
+    for (var ov = 0; ov <= 8; ov += 0.1){
+      var pn = wheelOffTrackPenalty(hT + ov, hT, matG);
+      if (pn > prevPen + 1e-12) monoOk = false;
+      prevPen = pn;
+    }
+    check('Penalización: nunca sube al alejarse del borde (grava, 0–8 m)', monoOk);
+    check('Penalización: continua en el límite del arcén (3 m)',
+          Math.abs(wheelOffTrackPenalty(hT + 3 - 1e-9, hT, matG) - wheelOffTrackPenalty(hT + 3 + 1e-9, hT, matG)) < 1e-6);
+    check('Penalización: a 3 m vale apronFloor del material',
+          Math.abs(wheelOffTrackPenalty(hT + 3, hT, matG) - matG.apronFloor) < 1e-9);
+    check('Penalización: a ≥6 m vale hardFloor del material',
+          Math.abs(wheelOffTrackPenalty(hT + 9, hT, matG) - matG.hardFloor) < 1e-9);
+    check('Penalización: gradual (a 0.3 m apenas pierde agarre, <2%)',
+          wheelOffTrackPenalty(hT + 0.3, hT, matA) > 0.98);
+    check('Penalización: grava pierde más que asfalto a 2 m',
+          wheelOffTrackPenalty(hT + 2, hT, matG) < wheelOffTrackPenalty(hT + 2, hT, matA));
+    check('Penalización: material sin campos usa valores por defecto sin fallar',
+          isFinite(wheelOffTrackPenalty(hT + 4, hT, {})) && isFinite(wheelOffTrackPenalty(hT + 4, hT, null)));
+    check('Penalización: sin ancho de pista no penaliza', wheelOffTrackPenalty(99, 0, matA) === 1.0);
+    var matsOk = Object.keys(SURFACE_MATERIAL).every(function(k){
+      var m = SURFACE_MATERIAL[k]; return m.apronFloor > m.hardFloor && m.hardFloor > 0 && m.apronFloor <= 1;
+    });
+    check('Todos los materiales tienen apronFloor > hardFloor > 0', matsOk);
+  } catch(e){ check('Penalización gradual sin excepción', false, e.message); }
+
+  // ---- 16. Barrera: arranque por el borde del coche y dirección de empuje ----
+  try {
+    var bs = trackBarrierStart(10, 1.5, 215);
+    check('Barrera arranca antes del borde (coche 1.5 m vía, pista 10 m → ~4.09 m)',
+          Math.abs(bs - 4.0925) < 1e-6, 'start=' + bs.toFixed(4));
+    check('Barrera: coche más ancho empieza antes', trackBarrierStart(10, 2.0, 215) < bs);
+    check('Barrera: pista estrecha nunca da arranque < 0.5 m', trackBarrierStart(1, 2.0, 300) >= 0.5);
+
+    function pushTowardCentre(angleDeg){
+      var tk = new TrackSystem();
+      tk.build([{ type:'curve', radius:60, angleDeg:angleDeg }], 10);
+      var sg = tk.segs[0], cc = tk.curveCenterOf(sg), mid = tk.pointAtS(sg.length/2);
+      var rx = mid.x - cc.cx, rz = mid.z - cc.cz, rl = Math.hypot(rx, rz); rx /= rl; rz /= rl;
+      var cx = mid.x + rx*7, cz = mid.z + rz*7;               // 7 m fuera del eje, hacia el exterior
+      var pr = tk.projectOntoTrack(cx, cz);
+      var od = trackOutwardDir(cx, cz, pr.px, pr.pz);
+      return od ? (-od.nx * -rx + -od.nz * -rz) : NaN;        // >0: empuja hacia el centro
+    }
+    check('Barrera empuja hacia dentro en curva a izquierdas', pushTowardCentre(90) > 0.99,
+          'cos=' + pushTowardCentre(90).toFixed(3));
+    check('Barrera empuja hacia dentro en curva a derechas (antes empujaba hacia fuera)',
+          pushTowardCentre(-90) > 0.99, 'cos=' + pushTowardCentre(-90).toFixed(3));
+
+    var tkS = new TrackSystem(); tkS.build([{ type:'straight', length:100 }], 10);
+    var prS = tkS.projectOntoTrack(7, 50), odS = trackOutwardDir(7, 50, prS.px, prS.pz);
+    check('Barrera: en recta el empuje sale perpendicular al eje', odS && Math.abs(odS.nx) > 0.999 && Math.abs(odS.nz) < 1e-6);
+
+    var tkC = new TrackSystem(); tkC.build([{ type:'clothoid', length:40, kStart:0, kEnd:0.02 }], 10);
+    var pC = tkC.pointAtS(20), prC = tkC.projectOntoTrack(pC.x + 6, pC.z), odC = trackOutwardDir(pC.x + 6, pC.z, prC.px, prC.pz);
+    check('Barrera: en clotoide da una dirección válida (no NaN)', odC && isFinite(odC.nx) && isFinite(odC.nz));
+    check('Barrera: coche exactamente sobre el eje no produce NaN', trackOutwardDir(1, 1, 1, 1) === null);
+  } catch(e){ check('Barrera sin excepción', false, e.message); }
+
+  // ---- 17. Control por substep, mapa de cambios y estado de transmisión ----
+  try {
+    // 17a. Mapa de cambios (función pura sobre una Transmission de prueba)
+    var trT = Object.assign(new Transmission({}), vehicle.transmission, { gearMode:'AUTO', gear:3, _shiftLock:0 });
+    var redT = trT.engRedline || 6500;
+    check('Cambio: con poco gas sube antes que a fondo',
+      (function(){ trT.gear = 3; var a = trT.autoShift(redT*0.65, 0.3, 20); trT.gear = 3; var b = trT.autoShift(redT*0.65, 1.0, 20); return a === 4 && b === 3; })());
+    trT.gear = 3; trT._shiftLock = 0.5;
+    check('Cambio: el bloqueo anti-vaivén impide subir', trT.autoShift(redT*0.98, 1.0, 20) === 3);
+    trT._shiftLock = 0;
+    var hunts = 0;
+    [0.2, 0.5, 1.0].forEach(function(th){
+      for (var gg = 1; gg <= 5; gg++){
+        trT.gear = gg;
+        var up = redT * (0.52 + 0.38*th) * 1.02;       // justo por encima del umbral de subida
+        var g1 = trT.autoShift(up, th, 20);
+        if (g1 === gg + 1){
+          var rpmAfter = up * Math.abs(trT.gearRatioOf(gg + 1, trT.gearRatios)) / Math.abs(trT.gearRatioOf(gg, trT.gearRatios));
+          trT.gear = g1;
+          if (trT.autoShift(rpmAfter, th, 20) < g1) hunts++;
+        }
+      }
+    });
+    check('Cambio: tras subir nunca reduce de inmediato (sin hunting)', hunts === 0, hunts + ' casos');
+    trT.gear = 4;
+    check('Cambio: reduce con régimen bajo', trT.autoShift((trT.engIdle||850)*1.2, 0.5, 5) === 3);
+    check('Cambio: manual no cambia solo', (function(){ trT.gearMode = 'MANUAL'; trT.gear = 3; var r = trT.autoShift(redT, 1, 20); trT.gearMode = 'AUTO'; return r === 3; })());
+    check('Transmission: engineInertia y tiempo de cambio con valores razonables',
+      vehicle.engineInertia > 0.05 && vehicle.engineInertia < 1.0 && vehicle._shiftDuration > 0.1 && vehicle._shiftDuration < 0.6,
+      'Ie=' + vehicle.engineInertia + ' dur=' + vehicle._shiftDuration);
+
+    // 17b. applyControlLogic: idempotente por substep y dependiente de subDt
+    var sv = { run:vehicleRunning, x:chassis.x, u:chassis.u, w:chassis.w, st:controls.steerTarget, sr:controls.steerRad,
+               bt:controls._baseThr, bb:controls._baseBrk, bs:controls._baseSteerTarget, thr:controls.throttle, brk:controls.brake,
+               lka:vehicle.lkaOn, acc:vehicle.accOn, aeb:vehicle.aebOn, eps:chassis._eps };
+    vehicleRunning = true; vehicle.lkaOn = true; vehicle.accOn = false; vehicle.aebOn = false;
+    chassis.x = 2; chassis.u = 15; chassis.w = 0;
+    controls._baseThr = 0.8; controls._baseBrk = 0; controls._baseSteerTarget = 0; controls.steerRad = 0;
+    applyControlLogic(0.005); var st1 = controls.steerTarget;
+    controls.throttle = 0.1;                       // simula basura de un substep anterior
+    applyControlLogic(0.005); var st2 = controls.steerTarget;
+    check('Substep: LKA actúa sobre el volante', Math.abs(st1) > 1e-4, 'st=' + st1);
+    check('Substep: ADAS no acumula entre llamadas (steerTarget estable)', Math.abs(st1 - st2) < 0.002 && Math.abs(st2) < 1.5 * Math.abs(st1) + 0.002, st1 + ' vs ' + st2);   // tolerancia: la vibración del LKA depende del reloj
+    check('Substep: restaura el acelerador base', Math.abs(controls.throttle - 0.8) < 1e-9, 'thr=' + controls.throttle);
+    vehicle.lkaOn = false; controls._baseSteerTarget = 0.4; controls.steerRad = 0;
+    applyControlLogic(0.005); var sA = controls.steerRad;
+    controls.steerRad = 0; applyControlLogic(0.0025); applyControlLogic(0.0025); var sB = controls.steerRad;
+    check('Substep: la velocidad de volante depende del subDt, no del frame', sA > 0 && sA < 0.06 && Math.abs(sA - sB) / sA < 0.2, sA + ' vs ' + sB);
+
+    // 17c. readRawInput: el creep se desvanece con la velocidad (freno motor)
+    var svc = { gm:vehicle.gearMode, nc:vehicle._noCreepUntil, ts:touchControls.throttle, tb:touchControls.brake, ts2:vehicle._thrSlide, bs2:vehicle._brkSlide };
+    vehicle.gearMode = 'AUTO'; vehicle._noCreepUntil = 0; touchControls.throttle = 0; touchControls.brake = 0; vehicle._thrSlide = 0; vehicle._brkSlide = 0;
+    chassis.u = 0; chassis.w = 0; readRawInput(0.016); var cLow = controls._baseThr;
+    chassis.u = 20; readRawInput(0.016); var cHigh = controls._baseThr;
+    check('Creep: presente parado y nulo a 72 km/h (no anula el freno motor)', cLow >= 0.19 && cHigh < 0.01, 'parado=' + cLow + ' rápido=' + cHigh);
+    vehicle.gearMode = svc.gm; vehicle._noCreepUntil = svc.nc; touchControls.throttle = svc.ts; touchControls.brake = svc.tb; vehicle._thrSlide = svc.ts2; vehicle._brkSlide = svc.bs2;
+
+    vehicleRunning = sv.run; chassis.x = sv.x; chassis.u = sv.u; chassis.w = sv.w;
+    controls.steerTarget = sv.st; controls.steerRad = sv.sr; controls._baseThr = sv.bt; controls._baseBrk = sv.bb; controls._baseSteerTarget = sv.bs;
+    controls.throttle = sv.thr; controls.brake = sv.brk; vehicle.lkaOn = sv.lka; vehicle.accOn = sv.acc; vehicle.aebOn = sv.aeb; chassis._eps = sv.eps;
+  } catch(e){ check('Substep/cambios sin excepción', false, e.message); }
+
+  // ---- 19. Modo 'dahl' clásico: la fuerza saturada llega a μ·Fz (no a la mitad) ----
+  try {
+    var cSat = new DahlStribeckContact(75), rSat;
+    for (var iSat = 0; iSat < 500; iSat++){
+      rSat = cSat.compute(-3.0, 0, 4000, 0.005, { muStatic:1.0, muDynamic:0.85, matMuS:1.0, matMuD:1.0, condMuS:1.0, condMuD:1.0,
+        tempOptimalC:75, tempWindowC:25, contactModel:'dahl', contactK:80000, contactC:1400, stribeckSpeed:0.10, offTrackPenalty:1.0 });
+    }
+    var fxSat = Math.abs(rSat.Fx), fxRef = 0.85 * 4000;
+    check('Modo dahl: deslizamiento saturado da ≈ μd·Fz (no ~0.5×)', fxSat > 0.9 * fxRef && fxSat < 1.1 * fxRef, 'Fx=' + fxSat.toFixed(0) + ' ref=' + fxRef);
+  } catch(e){ check('Modo dahl saturado sin excepción', false, e.message); }
+
+  // ---- 20. Neumático en frío: suelo de agarre ----
+  try {
+    var cCold = new DahlStribeckContact(25);
+    check('Neumático de calle a 25 °C conserva ≥75% de agarre', cCold.tempWearFactor(75, 25) >= 0.75, 'tf=' + cCold.tempWearFactor(75, 25));
+    check('Neumático slick (ventana 12) en frío sí pierde hasta el 50%', cCold.tempWearFactor(95, 12) <= 0.51, 'tf=' + cCold.tempWearFactor(95, 12));
+    var cOpt = new DahlStribeckContact(75);
+    check('Temperatura óptima da factor 1', Math.abs(cOpt.tempWearFactor(75, 25) - 1) < 1e-9);
+  } catch(e){ check('Temperatura sin excepción', false, e.message); }
+
+  // ---- 21. Transferencia de carga, reparto de freno y μ del firme ----
+  try {
+    check('Cabeceo: frenar (Fx<0) da momento negativo (morro abajo)', pitchMoment(0, -5000, 0.5) < 0);
+    check('Cabeceo: acelerar (Fx>0) da momento positivo (se sienta)', pitchMoment(0, 5000, 0.5) > 0);
+    check('Freno: el reparto delante+detrás suma 1.0 (par total aprovechable)', Math.abs(BRAKE_SPLIT_FRONT + BRAKE_SPLIT_REAR - 1) < 1e-9, BRAKE_SPLIT_FRONT + '+' + BRAKE_SPLIT_REAR);
+    check('Firme: asfalto y hormigón no repiten la caída de μ del compuesto', SURFACE_MATERIAL.asphalt.muD >= 0.99 && SURFACE_MATERIAL.concrete.muD >= 0.99);
+    var svS = { cm:vehicle.contactModel, su:vehicle.surface, sm:vehicle.surfaceMaterial, ct:chassis._onTrack };
+    vehicle.contactModel = 'dahl'; vehicle.surface = 'dry'; vehicle.surfaceMaterial = 'asphalt';
+    var stMu = new DahlStribeckContact(75), rMu;
+    for (var iMu = 0; iMu < 400; iMu++) rMu = bristleStep(stMu, -15, 0, 3000, 0.005, { kappa:-1, alpha:0, gamma:0 }, null);
+    var muEff = Math.abs(rMu.Fx) / 3000;
+    check('Asfalto seco, neumático caliente: μ en deslizamiento ≥ 0.80', muEff >= 0.80, 'μ=' + muEff.toFixed(3) + ' (antes 0.72)');
+    vehicle.contactModel = svS.cm; vehicle.surface = svS.su; vehicle.surfaceMaterial = svS.sm;
+  } catch(e){ check('Carga/freno/μ sin excepción', false, e.message); }
+
+  // ---- 22. AEB: el muro no queda enmascarado por el líder virtual ----
+  try {
+    var gA = vehicleBodyGeom();
+    var svA = { run:vehicleRunning, z:chassis.z, u:chassis.u, w:chassis.w, col:vehicle.collisionsOn, od:vehicle.obstacleDist, aeb:vehicle.aebOn, ttc:vehicle.aebTtc,
+                ld:vehicle.leadDist, ls:vehicle.leadSpeed, acc:vehicle.accOn, lka:vehicle.lkaOn, bt:controls._baseThr, bb:controls._baseBrk, bs:controls._baseSteerTarget,
+                thr:controls.throttle, brk:controls.brake, st:controls.steerTarget, tr:traffic.length };
+    if (svA.tr === 0){
+      vehicleRunning = true; vehicle.collisionsOn = true; vehicle.aebOn = true; vehicle.aebTtc = 2.0; vehicle.accOn = false; vehicle.lkaOn = false;
+      chassis.z = 0; chassis.u = 20; chassis.w = 0;
+      vehicle.obstacleDist = 15 + gA.wallHalf + gA.halfL;    // muro a 15 m
+      vehicle.leadDist = 60; vehicle.leadSpeed = 20;          // líder virtual con cierre 0
+      controls._baseThr = 0.5; controls._baseBrk = 0; controls._baseSteerTarget = 0;
+      applyControlLogic(0.005);
+      check('AEB: frena fuerte ante un muro aunque el líder virtual vaya a su velocidad', chassis._aeb === true && controls.brake >= 0.7, 'aeb=' + chassis._aeb + ' brake=' + controls.brake.toFixed(2));
+      check('AEB: corta el acelerador al actuar', controls.throttle <= 0.05, 'thr=' + controls.throttle);
+      vehicle.collisionsOn = false; vehicle.leadDist = 400; vehicle.leadSpeed = 30;
+      applyControlLogic(0.005);
+      check('AEB: sin obstáculo cercano no actúa', chassis._aeb === false);
+    }
+    vehicleRunning = svA.run; chassis.z = svA.z; chassis.u = svA.u; chassis.w = svA.w; vehicle.collisionsOn = svA.col; vehicle.obstacleDist = svA.od; vehicle.aebOn = svA.aeb; vehicle.aebTtc = svA.ttc;
+    vehicle.leadDist = svA.ld; vehicle.leadSpeed = svA.ls; vehicle.accOn = svA.acc; vehicle.lkaOn = svA.lka; controls._baseThr = svA.bt; controls._baseBrk = svA.bb; controls._baseSteerTarget = svA.bs;
+    controls.throttle = svA.thr; controls.brake = svA.brk; controls.steerTarget = svA.st;
+  } catch(e){ check('AEB sin excepción', false, e.message); }
+
+  // ---- 23. HUD: estado térmico del neumático ----
+  try {
+    check('Temperatura: en el óptimo → ok y no frío', (function(){ var r = tireTempState(75, 75, 25); return r.level === 'ok' && !r.cold; })());
+    check('Temperatura: 25 °C con óptimo 75/25 → bad y frío', (function(){ var r = tireTempState(25, 75, 25); return r.level === 'bad' && r.cold; })());
+    check('Temperatura: sobrecalentado → bad y no frío', (function(){ var r = tireTempState(120, 75, 25); return r.level === 'bad' && !r.cold; })());
+    check('Temperatura: a medio camino → warn', tireTempState(55, 75, 25).level === 'warn');
+  } catch(e){ check('Temperatura HUD sin excepción', false, e.message); }
+
+  // ---- 24. Par al eje: sin realimentación hacia atrás en marchas de avance ----
+  try {
+    check('Par: en marcha de avance rodando hacia atrás NO se invierte el par', shaftTorqueSign(500, 3, -4, 0.4) === 500);
+    check('Par: en marcha atrás con gas es siempre negativo', shaftTorqueSign(500, -1, -2, 0.4) === -500 && shaftTorqueSign(-500, -1, -2, 0.4) === -500);
+    check('Par: sin gas y sin freno motor no se toca', shaftTorqueSign(-80, -1, -2, 0) === -80);
+    check('Freno motor: avanzando frena (par negativo)', shaftTorqueSign(-80, 3, 10, 0, -6, 30) < 0);
+    check('Freno motor: rodando hacia atrás en marcha de avance frena (par positivo)', shaftTorqueSign(-80, 1, -4, 0, -6, -12) > 0);
+    check('Freno motor: rodando hacia delante en marcha atrás frena (par negativo)', shaftTorqueSign(80, -1, 4, 0, -6, 12) < 0);
+  } catch(e){ check('Par al eje sin excepción', false, e.message); }
+
+  // ---- 25. Silueta de carrocería: el preset de clase manda mientras no se toque mass/engTmax ----
+  try {
+    var svB = { c:vehicle._bodyClass, sg:vehicle._bodyClassSig };
+    ['hatch', 'sport', 'hyper'].forEach(function(cn){
+      vehicle._bodyClass = cn; vehicle._bodyClassSig = vehicle.mass + '|' + vehicle.engTmax;
+      check('Carrocería: clase forzada "' + cn + '" se respeta', vehicleBodyGeom().cls === cn);
+    });
+    vehicle._bodyClass = 'hatch'; vehicle._bodyClassSig = 'otro|valor';
+    check('Carrocería: si mass/engTmax cambiaron, vuelve a la heurística', vehicleBodyGeom().cls !== undefined && vehicle._bodyClassSig !== (vehicle.mass + '|' + vehicle.engTmax));
+    vehicle._bodyClass = svB.c; vehicle._bodyClassSig = svB.sg;
+  } catch(e){ check('Carrocería sin excepción', false, e.message); }
+
+  // ---- 18. showToast no se cuelga con ráfagas de avisos ----
+  try {
+    var stackT = document.getElementById('toastStack');
+    if (stackT){
+      var t0 = Date.now();
+      for (var ti = 0; ti < TOAST_MAX_VISIBLE + 4; ti++) showToast('selftest ' + ti);
+      var liveT = Array.prototype.filter.call(stackT.children, function(c){ return !c._dismissing; }).length;
+      check('Toast: una ráfaga de avisos no congela y respeta el máximo visible', liveT <= TOAST_MAX_VISIBLE && Date.now() - t0 < 500, 'visibles=' + liveT);
+      Array.prototype.slice.call(stackT.children).forEach(function(c){ dismissToast(c); });
+    }
+  } catch(e){ check('Toast sin excepción', false, e.message); }
 
   var ok = fail === 0;
   var header = '[SelfTest] ' + pass + '/' + (pass + fail) + (ok ? ' OK' : ' — con ' + fail + ' fallo(s)');
@@ -8709,80 +9238,174 @@ var UndoStack = (function(){
 })();
 
 /* ============================================================
-   HUD — refleja el estado en vivo sin tocar la física. Se engancha
-   al bucle principal vía requestAnimationFrame (no lo modifica).
+   HUD — refleja el estado en vivo sin tocar la física. Corre en
+   su propio requestAnimationFrame, independiente del bucle principal.
+   Usa setWarn() con caché para no tocar el DOM cuando no cambia nada
+   (evita recálculo de estilos cada frame, importante en móvil).
    ============================================================ */
+/* Estado térmico de un neumático respecto a su ventana óptima:
+   'ok' dentro de ±ventana/2, 'warn' dentro de ±ventana, 'bad' fuera.
+   'cold' es true si está por debajo de la zona verde. Función pura. */
+function tireTempState(T, opt, win){
+  var d = T - opt, a = Math.abs(d), w = Math.max(1, win);
+  var level = a < w / 2 ? 'ok' : (a < w ? 'warn' : 'bad');
+  return { level: level, cold: d < -w / 2 };
+}
+
 var HUD = (function(){
   var el, elSpeed, elRpm, elGear, elTtc, elRpmBar;
-  var warnAeb, warnAbs, warnTcs, warnOff, warnHit;
-  var cachedWarn = { aeb:false, abs:false, tcs:false, off:false, hit:false };
+  var warnAeb, warnAbs, warnTcs, warnApron, warnOff, warnHit, warnCold, elTireT, elTireBars;
+  var tireBarCount = -1, tireLevelKey = '';
+  var cached = { cold:false, aeb:false, abs:false, tcs:false, apron:false, off:false, hit:false, redline:false };
+  var initOk = false;
 
   function init(){
     el = document.getElementById('hud');
     if (!el) return false;
-    elSpeed = document.getElementById('hudSpeed');
-    elRpm = document.getElementById('hudRpm');
-    elGear = document.getElementById('hudGear');
-    elTtc = document.getElementById('hudTtc');
+    elSpeed  = document.getElementById('hudSpeed');
+    elRpm    = document.getElementById('hudRpm');
+    elGear   = document.getElementById('hudGear');
+    elTtc    = document.getElementById('hudTtc');
     elRpmBar = document.getElementById('hudRpmBar');
-    warnAeb = document.getElementById('hudWarnAeb');
-    warnAbs = document.getElementById('hudWarnAbs');
-    warnTcs = document.getElementById('hudWarnTcs');
-    warnOff = document.getElementById('hudWarnOff');
-    warnHit = document.getElementById('hudWarnHit');
-    return true;
+    warnAeb  = document.getElementById('hudWarnAeb');
+    warnAbs  = document.getElementById('hudWarnAbs');
+    warnTcs  = document.getElementById('hudWarnTcs');
+    warnApron= document.getElementById('hudWarnApron');
+    warnOff  = document.getElementById('hudWarnOff');
+    warnHit  = document.getElementById('hudWarnHit');
+    warnCold = document.getElementById('hudWarnCold');
+    elTireT  = document.getElementById('hudTireT');
+    elTireBars = document.getElementById('hudTireBars');
+    initOk = !!(el && elSpeed && elRpm && elGear && elTtc && elRpmBar);
+    return initOk;
   }
 
   function setWarn(node, on, key){
-    if (cachedWarn[key] === on) return;
-    cachedWarn[key] = on;
-    node.classList.toggle('on', on);
+    if (cached[key] === on) return;
+    cached[key] = on;
+    if (node) node.classList.toggle('on', on);
+  }
+
+  /* Determina si el coche está rozando el piano (una o varias ruedas
+     pasadas del borde pero todavía dentro del arcén). Se apoya en el
+     lateral del centro del coche — es una aproximación visual, no
+     entra en física. */
+  function computeApronState(){
+    return trackEdgeState().apron;
   }
 
   function tick(){
-    if (!el){ requestAnimationFrame(tick); return; }
-    // Visibilidad: solo cuando el coche está en marcha
+    requestAnimationFrame(tick);
+    if (!initOk) return;
+
+    // Visibilidad: solo cuando el coche está en marcha.
     el.classList.toggle('visible', !!vehicleRunning);
-    if (vehicleRunning){
-      var v = Math.hypot(chassis.u||0, chassis.w||0);
-      elSpeed.textContent = (v*3.6).toFixed(0);
 
-      var rpm = chassis._rpm || 0;
-      elRpm.textContent = rpm.toFixed(0);
-
-      var red = (vehicle.engRedline || 6500);
-      var pct = Math.max(0, Math.min(100, (rpm / red) * 100));
-      elRpmBar.style.width = pct.toFixed(1) + '%';
-
-      elGear.textContent = gearLabel(currentGear());
-
-      var ttc = chassis._ttc;
-      elTtc.textContent = (ttc == null || ttc > 20) ? '—' : ttc.toFixed(1);
-
-      setWarn(warnAeb, !!chassis._aeb, 'aeb');
-      setWarn(warnAbs, !!chassis._abs, 'abs');
-      setWarn(warnTcs, !!chassis._tcs, 'tcs');
-      setWarn(warnOff, chassis._onTrack === false, 'off');
-      setWarn(warnHit, !!chassis._hit, 'hit');
-    } else {
-      // Al parar, apaga los warnings para que no queden congelados
-      setWarn(warnAeb, false, 'aeb');
-      setWarn(warnAbs, false, 'abs');
-      setWarn(warnTcs, false, 'tcs');
-      setWarn(warnOff, false, 'off');
-      setWarn(warnHit, false, 'hit');
+    if (!vehicleRunning){
+      // Apaga los avisos para que no queden congelados al detener.
+      setWarn(warnAeb,   false, 'aeb');
+      setWarn(warnAbs,   false, 'abs');
+      setWarn(warnTcs,   false, 'tcs');
+      setWarn(warnApron, false, 'apron');
+      setWarn(warnOff,   false, 'off');
+      setWarn(warnHit,   false, 'hit');
+      setWarn(warnCold,  false, 'cold');
+      return;
     }
+
+    // --- Velocidad ---
+    var v = Math.hypot(chassis.u||0, chassis.w||0);
+    elSpeed.textContent = (v*3.6).toFixed(0);
+
+    // --- RPM + barra ---
+    var rpm = chassis._rpm || 0;
+    elRpm.textContent = rpm.toFixed(0);
+
+    var red = (vehicle.engRedline || 6500);
+    var pct = Math.max(0, Math.min(100, (rpm / red) * 100));
+    elRpmBar.style.width = pct.toFixed(1) + '%';
+
+    var nearRed = rpm >= red * 0.92;
+    if (cached.redline !== nearRed){
+      cached.redline = nearRed;
+      elSpeed.classList.toggle('redline', nearRed);
+      elRpmBar.classList.toggle('redline', nearRed);
+    }
+
+    // --- Marcha ---
+    elGear.textContent = gearLabel(currentGear());
+
+    // --- TTC ---
+    var ttc = chassis._ttc;
+    elTtc.textContent = (ttc == null || ttc > 20) ? '—' : ttc.toFixed(1);
+
+    // --- Temperatura de neumáticos (solo informa; no toca la física) ---
+    if (elTireT){
+      var opt = (coefs.tempOptimalC != null ? coefs.tempOptimalC : 75), win = (coefs.tempWindowC != null ? coefs.tempWindowC : 25);
+      var temps = currentWheelDefs.map(function(w){ var b = bristle[w.id]; return b ? (b.T || 0) : (vehicle.ambientTemp || 25); });
+      var mean = temps.reduce(function(a, b){ return a + b; }, 0) / Math.max(1, temps.length);
+      var stM = tireTempState(mean, opt, win);
+      var states = temps.map(function(T){ return tireTempState(T, opt, win); });
+      var key = states.map(function(x){ return x.level; }).join(',') + '|' + stM.level;
+      elTireT.textContent = mean.toFixed(0);
+      if (key !== tireLevelKey){
+        tireLevelKey = key;
+        elTireT.className = 'val t-' + stM.level;
+        if (elTireBars){
+          if (tireBarCount !== temps.length){ elTireBars.innerHTML = temps.map(function(){ return '<i></i>'; }).join(''); tireBarCount = temps.length; }
+          Array.prototype.forEach.call(elTireBars.children, function(node, i){ node.className = 't-' + states[i].level; });
+        }
+      }
+      setWarn(warnCold, states.length > 0 && states.every(function(x){ return x.cold; }), 'cold');
+    }
+
+    // --- Avisos ---
+    setWarn(warnAeb,   !!chassis._aeb, 'aeb');
+    setWarn(warnAbs,   !!chassis._abs, 'abs');
+    setWarn(warnTcs,   !!chassis._tcs, 'tcs');
+    setWarn(warnHit,   !!chassis._hit, 'hit');
+    // Fuera de pista (centro del coche cruzado) tiene prioridad sobre "rozando piano"
+    var isOff = (chassis._onTrack === false);
+    var isApron = !isOff && computeApronState();
+    setWarn(warnOff,   isOff,   'off');
+    setWarn(warnApron, isApron, 'apron');
+  }
+
+  function boot(){
+    if (!init()) return;
     requestAnimationFrame(tick);
   }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 
-  if (document.readyState === 'loading'){
-    document.addEventListener('DOMContentLoaded', function(){
-      if (init()) requestAnimationFrame(tick);
-    });
-  } else {
-    if (init()) requestAnimationFrame(tick);
+  return {
+    isReady: function(){ return initOk; },
+    show: function(){ if (el) el.classList.add('visible'); },
+    hide: function(){ if (el) el.classList.remove('visible'); }
+  };
+})();
+
+/* ============================================================
+   Aviso de salida de pista: vibración al rozar el piano y al salir.
+   Sin tocar la física. En iPhone navigator.vibrate no existe (iOS no lo
+   soporta), así que ahí el aviso es solo el del HUD.
+   ============================================================ */
+(function offTrackFeedback(){
+  var wasOff = false, wasApron = false;
+  function tick(){
+    requestAnimationFrame(tick);
+    if (!vehicleRunning){ wasOff = false; wasApron = false; return; }
+    var st = trackEdgeState();
+    if (typeof ControlsPro !== 'undefined' && typeof ControlsPro.vibrate === 'function'){
+      if (st.apron && !wasApron) ControlsPro.vibrate(8);
+      if (st.off && !wasOff){
+        ControlsPro.vibrate([25, 20, 25, 20, 40]);
+        if (typeof ControlsPro.rumble === 'function') ControlsPro.rumble(0.4, 0.2, 220);
+      }
+    }
+    wasApron = st.apron; wasOff = st.off;
   }
-  return { init: init };
+  requestAnimationFrame(tick);
 })();
 
 if (document.readyState === 'loading'){
