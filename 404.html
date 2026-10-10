@@ -4848,24 +4848,45 @@ function makeWheelMesh4w(){
 
   function axleX(geo){ geo.rotateY(Math.PI/2); return geo; }
 
+  // Neumático: perfil de revolución (hombros redondeados, flancos casi rectos)
+  var rimR = torusR * 0.78;
+  var tp = [];
+  tp.push(new THREE.Vector2(rimR*0.96, -halfW*0.86));
+  tp.push(new THREE.Vector2(R0*0.86,  -halfW*0.98));
+  tp.push(new THREE.Vector2(R0*0.96,  -halfW*0.88));
+  tp.push(new THREE.Vector2(R0*0.995, -halfW*0.60));
+  tp.push(new THREE.Vector2(R0,       -halfW*0.30));
+  tp.push(new THREE.Vector2(R0,        halfW*0.30));
+  tp.push(new THREE.Vector2(R0*0.995,  halfW*0.60));
+  tp.push(new THREE.Vector2(R0*0.96,   halfW*0.88));
+  tp.push(new THREE.Vector2(R0*0.86,   halfW*0.98));
+  tp.push(new THREE.Vector2(rimR*0.96, halfW*0.86));
+  var tireGeo = new THREE.LatheGeometry(tp, 36);
+  tireGeo.rotateZ(Math.PI/2);                       // eje del torno Y -> eje de la rueda X
   var tireMesh = new THREE.Mesh(
-    axleX(new THREE.TorusGeometry(torusR, tube, 12, 22)),
-    new THREE.MeshStandardMaterial({ color:tStyle.rubber, roughness:0.9, metalness:0.04 })
+    tireGeo,
+    new THREE.MeshStandardMaterial({ color:tStyle.rubber, roughness:0.9, metalness:0.04, side:THREE.DoubleSide })
   );
   spinGroup.add(tireMesh);
-  var sideMat = new THREE.MeshStandardMaterial({ color:tStyle.sidewall, roughness:0.85, metalness:0.06, side:THREE.DoubleSide });
-  var side1 = new THREE.Mesh(axleX(new THREE.RingGeometry(torusR*0.72, torusR+tube*0.15, 20)), sideMat);
-  side1.position.x = halfW*0.42;
-  spinGroup.add(side1);
-  var side2 = side1.clone();
-  side2.position.x = -halfW*0.42;
-  spinGroup.add(side2);
 
+  // Llanta: barril + disco oscuro de fondo (los radios se ven por encima)
+  var rimMat = new THREE.MeshStandardMaterial({ color:rStyle.color, roughness:0.28, metalness:0.82 });
+  var barrelGeo = new THREE.CylinderGeometry(rimR, rimR, halfW*1.7, 28, 1, true);
+  barrelGeo.rotateZ(Math.PI/2);
+  var barrel = new THREE.Mesh(barrelGeo, new THREE.MeshStandardMaterial({ color:rStyle.color, roughness:0.3, metalness:0.8, side:THREE.DoubleSide }));
+  spinGroup.add(barrel);
+  var faceMat = new THREE.MeshStandardMaterial({ color:0x15161a, roughness:0.6, metalness:0.5, side:THREE.DoubleSide });
+  var face = new THREE.Mesh(axleX(new THREE.CircleGeometry(rimR*0.98, 28)), faceMat);
+  face.position.x = 0;
+  spinGroup.add(face);
+  // Anillo exterior de la llanta (labio brillante)
   var rimRing = new THREE.Mesh(
-    axleX(new THREE.TorusGeometry(torusR*0.78, Math.max(0.012, tube*0.18), 8, 18)),
-    new THREE.MeshStandardMaterial({ color:rStyle.color, roughness:0.28, metalness:0.82 })
+    axleX(new THREE.TorusGeometry(rimR, Math.max(0.01, tube*0.14), 8, 28)),
+    rimMat
   );
+  rimRing.position.x = halfW*0.8;
   spinGroup.add(rimRing);
+  var rimRingB = rimRing.clone(); rimRingB.position.x = -halfW*0.8; spinGroup.add(rimRingB);
   if (vehicle.rimStyle === 'offroad'){
     var lock = new THREE.Mesh(
       axleX(new THREE.TorusGeometry(torusR*0.92, 0.018, 6, 16)),
@@ -4885,9 +4906,11 @@ function makeWheelMesh4w(){
   var spokeMat = new THREE.MeshStandardMaterial({ color:rStyle.color, roughness:0.32, metalness:0.75 });
   var nSp = rStyle.n || 5;
   for (var i=0;i<nSp;i++){
-    var spoke = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.02, halfW*0.7), 1.45*torusR, rStyle.thick), spokeMat);
+    var spoke = new THREE.Mesh(new THREE.BoxGeometry(Math.max(0.02, halfW*0.35), 2*rimR*0.94, rStyle.thick*0.9), spokeMat);
     spoke.rotation.x = i*(Math.PI/nSp);
+    spoke.position.x = halfW*0.22;
     spinGroup.add(spoke);
+    var spokeB = spoke.clone(); spokeB.position.x = -halfW*0.22; spinGroup.add(spokeB);
   }
 
   var marks = new THREE.Group();
@@ -4995,123 +5018,190 @@ function rebuildChassisMesh(){
   var geomInfo = vehicleBodyGeom();
   var prof = geomInfo.profile;
   var cls = geomInfo.cls;
-  // Cotas VISUALES (la colisión sigue usando geomInfo.bodyL/halfL): la
-  // carrocería cubre de eje a eje más voladizos, y su ancho llega a media
-  // banda de rodadura, de modo que las ruedas quedan en los pasos de rueda.
+  // Cotas VISUALES (la colisión sigue usando geomInfo.bodyL/halfL).
+  var wheelAs = [];
+  currentWheelDefs.forEach(function(w){
+    var k = Math.round(w.a*100)/100;
+    if (wheelAs.indexOf(k) < 0) wheelAs.push(k);
+  });
   var maxA = 1.3;
-  currentWheelDefs.forEach(function(w){ maxA = Math.max(maxA, Math.abs(w.a)); });
+  wheelAs.forEach(function(a){ maxA = Math.max(maxA, Math.abs(a)); });
   var tireHalf = Math.max(0.08, (vehicle.tireWidthMm||215)/2000);
   var R0v = Math.max(0.18, coefs.R0 || 0.315);
-  var ovh = { hatch:0.55, sport:0.62, hyper:0.74, truck:0.60 }[cls] || 0.55;
-  var bodyL = 2*maxA + 2*ovh;
-  var bodyW = Math.max(0.5, vehicle.track + tireHalf*1.1);
-  var H = { hatch:{slab:0.52, cab:0.58}, sport:{slab:0.42, cab:0.36},
-            hyper:{slab:0.30, cab:0.28}, truck:{slab:1.00, cab:0.62} }[cls] || { slab:0.5, cab:0.45 };
-  var bodyH = H.slab;
-  var y0 = Math.max(0.16, R0v*0.55);         // altura libre al suelo
-  var topY = y0 + bodyH;
+  var ovhF = { hatch:0.62, sport:0.72, hyper:0.74, truck:0.55 }[cls] || 0.6;
+  var ovhR = { hatch:0.55, sport:0.62, hyper:0.68, truck:0.65 }[cls] || 0.6;
+  var halfF = maxA + ovhF, halfR = maxA + ovhR;       // z delantera / trasera (|z|)
+  var bodyL = halfF + halfR;
+  var bodyW = Math.max(0.5, vehicle.track + tireHalf*0.3);
+  var BV = 0.08;                                       // radio de redondeo
+  var y0 = Math.max(0.12, R0v*0.55) + BV;              // el bisel baja el borde inferior BV
+  var slab = { hatch:0.60, sport:0.55, hyper:0.50, truck:1.00 }[cls] || 0.55;
+  var archR = R0v + 0.06 + BV;
+  var topY = Math.max(y0 + slab, R0v + archR + 0.04);
+  var cabH = { hatch:0.58, sport:0.40, hyper:0.32, truck:0.62 }[cls] || 0.45;
+  var cabL = bodyL * ({ hatch:0.46, sport:0.38, hyper:0.36, truck:0.26 }[cls] || 0.4);
+  var cabC = { hatch:-0.04, sport:-0.08, hyper:-0.03, truck:0.26 }[cls] || 0;
+  var cabZ = cabC * bodyL + (halfF - halfR)/2;
+  var rakeF = { hatch:0.28, sport:0.34, hyper:0.42, truck:0.10 }[cls] || 0.3;
+  var rakeR = { hatch:0.08, sport:0.34, hyper:0.30, truck:0.02 }[cls] || 0.2;
+  var hoodDrop = { hatch:0.10, sport:0.17, hyper:0.22, truck:0.0 }[cls] || 0.1;
+  var deckDrop = { hatch:0.02, sport:0.06, hyper:0.10, truck:0.0 }[cls] || 0.03;
 
   var group = new THREE.Group();
-
-  var matBody = new THREE.MeshStandardMaterial({
-    color: chassisBodyColor(),
-    roughness: 0.35, metalness: 0.55
-  });
-  var matDark = new THREE.MeshStandardMaterial({
-    color: 0x14141a, roughness: 0.55, metalness: 0.35
-  });
+  var matBody = new THREE.MeshStandardMaterial({ color: chassisBodyColor(), roughness: 0.3, metalness: 0.6 });
+  var matDark = new THREE.MeshStandardMaterial({ color: 0x14141a, roughness: 0.55, metalness: 0.35 });
   var matGlass = new THREE.MeshStandardMaterial({
-    color: 0x1a1a22, roughness: 0.15, metalness: 0.05,
-    transparent: true, opacity: 0.78
+    color: 0x20262e, roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.88
   });
 
-  // === CUERPO PRINCIPAL ===
-  var main = new THREE.Mesh(new THREE.BoxGeometry(bodyW, bodyH, bodyL), matBody);
-  main.position.y = y0 + bodyH/2;
+  // Extruye un perfil lateral (x = z mundo hacia delante, y = altura) a lo
+  // ancho 'w', con bordes redondeados 'bev'. Devuelve la geometría centrada.
+  function sideExtrude(shape, w, bev, segs){
+    var depth = Math.max(0.02, w - 2*bev);
+    var g = new THREE.ExtrudeGeometry(shape, {
+      depth: depth, bevelEnabled: true, bevelThickness: bev, bevelSize: bev,
+      bevelSegments: segs || 4, curveSegments: 12
+    });
+    g.translate(0, 0, -depth/2);
+    g.rotateY(-Math.PI/2);      // x(perfil) -> z mundo, z(extrusión) -> x mundo
+    return g;
+  }
+
+  // === PERFIL LATERAL DEL CASCO con pasos de rueda redondos ===
+  var hf = topY - hoodDrop, hr = topY - deckDrop;
+  var pts = [];
+  pts.push([-halfR, y0 + 0.02]);
+  wheelAs.slice().sort(function(a,b){ return a-b; }).forEach(function(za){
+    var dy = R0v - y0;
+    if (Math.abs(dy) >= archR) return;
+    var c = Math.sqrt(archR*archR - dy*dy);
+    var a1 = Math.atan2(y0 - R0v, -c) + 2*Math.PI;   // ~190°
+    var a2 = Math.atan2(y0 - R0v,  c);               // ~-10°
+    pts.push([za - c, y0]);
+    var N = 14;
+    for (var i = 1; i < N; i++){
+      var ang = a1 + (a2 - a1) * (i / N);
+      pts.push([za + archR*Math.cos(ang), R0v + archR*Math.sin(ang)]);
+    }
+    pts.push([za + c, y0]);
+  });
+  pts.push([halfF, y0 + 0.02]);
+  pts.push([halfF, hf - 0.16]);
+  pts.push([halfF - 0.20, hf]);                      // nariz redondeada
+  pts.push([cabZ + cabL/2 + 0.05, topY]);            // base del parabrisas
+  pts.push([cabZ - cabL/2 - 0.05, topY]);
+  pts.push([-halfR + 0.30, hr]);                     // maletero
+  pts.push([-halfR, hr - 0.10]);
+  var shape = new THREE.Shape();
+  pts.forEach(function(q, i){ if (i === 0) shape.moveTo(q[0], q[1]); else shape.lineTo(q[0], q[1]); });
+  shape.closePath();
+  var main = new THREE.Mesh(sideExtrude(shape, bodyW, BV, 4), matBody);
   main.castShadow = true;
   group.add(main);
 
-  // === SPLITTER / MORRO ===
-  var splitter = new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.02, 0.05, 0.28), matDark);
-  splitter.position.set(0, y0 + 0.02, bodyL/2 + 0.04);
-  splitter.castShadow = true;
-  group.add(splitter);
-  chassisNose = splitter;
+  // Interior oscuro de los pasos de rueda (entre las ruedas) para no ver a través
+  var floor = new THREE.Mesh(
+    new THREE.BoxGeometry(Math.max(0.3, vehicle.track - tireHalf*2 - 0.03), Math.min(hf, hr) - y0 - 0.10, bodyL - 0.5),
+    matDark
+  );
+  floor.position.set(0, y0 + (Math.min(hf, hr) - y0 - 0.10)/2, (halfF - halfR)/2);
+  group.add(floor);
 
-  // === CABINA: tronco de pirámide (laterales y parabrisas inclinados) ===
-  var cabH = H.cab;
-  var cabW = bodyW * (cls === 'truck' ? 0.92 : 0.80);
-  var cabL = prof.cabLen * bodyL * (cls === 'truck' ? 1 : (cls === 'hatch' ? 1.3 : 1.1));
-  var cabZ = prof.cabOff * bodyL + (cls === 'truck' ? 0 : 0.0);
-  var topK = cls === 'truck' ? 0.92 : (cls === 'hatch' ? 0.88 : (cls === 'hyper' ? 0.6 : 0.68));
-  var cabGeo = new THREE.CylinderGeometry(0.5*Math.SQRT2*topK, 0.5*Math.SQRT2, cabH, 4);
-  cabGeo.rotateY(Math.PI/4);
-  var cab = new THREE.Mesh(cabGeo, matGlass);
-  cab.scale.set(cabW, 1, cabL);
-  cab.position.set(0, topY + cabH/2, cabZ);
+  // === HABITÁCULO: trapecio acristalado + techo del color de la carrocería ===
+  var zf0 = cabZ + cabL/2, zr0 = cabZ - cabL/2;
+  var zft = zf0 - rakeF*cabL, zrt = zr0 + rakeR*cabL;
+  var cabW = bodyW * (cls === 'truck' ? 0.90 : 0.84);
+  var gs = new THREE.Shape();
+  gs.moveTo(zr0, topY - 0.02); gs.lineTo(zf0, topY - 0.02);
+  gs.lineTo(zft, topY + cabH - 0.03); gs.lineTo(zrt, topY + cabH - 0.03);
+  gs.closePath();
+  var cab = new THREE.Mesh(sideExtrude(gs, cabW, 0.03, 2), matGlass);
   cab.castShadow = true;
   group.add(cab);
 
-  // Techo
-  var cabRoof = new THREE.Mesh(new THREE.BoxGeometry(cabW*topK*1.02, 0.04, cabL*topK*1.02), matBody);
-  cabRoof.position.set(0, topY + cabH, cabZ);
-  group.add(cabRoof);
+  var tF = (cabH - 0.07) / cabH;                     // fracción de altura donde empieza el techo
+  function lz(za, zb, t){ return za + (zb - za)*t; }
+  var rs = new THREE.Shape();
+  rs.moveTo(lz(zr0, zrt, tF), topY + cabH*tF - 0.03);
+  rs.lineTo(lz(zf0, zft, tF), topY + cabH*tF - 0.03);
+  rs.lineTo(zft + 0.02, topY + cabH - 0.01);
+  rs.lineTo(zrt - 0.02, topY + cabH - 0.01);
+  rs.closePath();
+  var roof = new THREE.Mesh(sideExtrude(rs, cabW + 0.02, 0.03, 2), matBody);
+  roof.castShadow = true;
+  group.add(roof);
+
+  // === MORRO: labio / splitter integrado (no sobresale) ===
+  chassisNose = null;
+  if (cls === 'sport' || cls === 'hyper'){
+    var lip = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.94, 0.03, 0.10), matDark);
+    lip.position.set(0, y0 - BV + 0.02, halfF + 0.01);
+    lip.castShadow = true;
+    group.add(lip);
+    chassisNose = lip;
+  }
+  // Parachoques / rejilla frontal oscura
+  var grille = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.56, 0.09, 0.03), matDark);
+  grille.position.set(0, y0 + (hf - y0)*0.32, halfF + BV - 0.005);
+  group.add(grille);
 
   // === ALERÓN TRASERO (hyper) ===
   if (prof.wing){
-    var wingW = bodyW * 1.0;
-    var wingY = topY + 0.30;
-    var wing = new THREE.Mesh(new THREE.BoxGeometry(wingW, 0.05, 0.38), matDark);
-    wing.position.set(0, wingY, -bodyL/2 + 0.05);
+    var wingW = bodyW * 0.98;
+    var wingY = topY + 0.34;
+    var wing = new THREE.Mesh(new THREE.BoxGeometry(wingW, 0.04, 0.34), matDark);
+    wing.position.set(0, wingY, -halfR + 0.10);
+    wing.rotation.x = 0.10;
     wing.castShadow = true;
     group.add(wing);
     [-1, 1].forEach(function(sgn){
-      var strut = new THREE.Mesh(new THREE.BoxGeometry(0.05, wingY - topY + 0.02, 0.05), matDark);
-      strut.position.set(sgn * wingW*0.38, topY + (wingY - topY)/2, -bodyL/2 + 0.08);
+      var strut = new THREE.Mesh(new THREE.BoxGeometry(0.04, wingY - hr + 0.02, 0.07), matDark);
+      strut.position.set(sgn * wingW*0.36, hr + (wingY - hr)/2, -halfR + 0.12);
       group.add(strut);
+      var plate = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.14, 0.38), matDark);
+      plate.position.set(sgn * wingW*0.5, wingY + 0.03, -halfR + 0.10);
+      group.add(plate);
     });
-    var diff = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.8, 0.10, 0.3), matDark);
-    diff.position.set(0, y0 + 0.04, -bodyL/2 - 0.02);
+    var diff = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.78, 0.10, 0.22), matDark);
+    diff.position.set(0, y0 - BV + 0.07, -halfR - 0.01);
     group.add(diff);
   }
 
   // === SPOILER PEQUEÑO (sport) ===
   if (prof.spoiler){
-    var lip = new THREE.Mesh(new THREE.BoxGeometry(bodyW * 0.9, 0.04, 0.16), matDark);
-    lip.position.set(0, topY + 0.07, -bodyL/2 + 0.06);
-    group.add(lip);
+    var sp = new THREE.Mesh(new THREE.BoxGeometry(bodyW * 0.88, 0.035, 0.14), matDark);
+    sp.position.set(0, hr + 0.06, -halfR + 0.10);
+    group.add(sp);
   }
 
   // === CAJA DE CARGA (truck) ===
   if (cls === 'truck'){
     var boxH = 1.4;
-    var boxL = bodyL * 0.55;
+    var boxL = bodyL * 0.52;
     var box = new THREE.Mesh(
       new THREE.BoxGeometry(bodyW*0.98, boxH, boxL),
       new THREE.MeshStandardMaterial({ color:0x555a62, roughness:0.85, metalness:0.15 })
     );
-    box.position.set(0, topY + boxH/2, -bodyL*0.2);
+    box.position.set(0, topY + boxH/2, -halfR + boxL/2 + 0.05);
     box.castShadow = true;
     group.add(box);
   }
 
-  // === FAROS ===
+  // === FAROS / PILOTOS (pegados a la cara frontal/trasera redondeada) ===
   var headMat = new THREE.MeshStandardMaterial({
     color: 0xfff2c0, emissive: 0xfff2c0, emissiveIntensity: 0.9, roughness: 0.3
   });
   [-1, 1].forEach(function(sgn){
-    var light = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.05), headMat);
-    light.position.set(sgn * bodyW*0.34, y0 + bodyH*0.65, bodyL/2 + 0.01);
+    var light = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.04), headMat);
+    light.position.set(sgn * bodyW*0.34, hf - 0.14, halfF + BV - 0.005);
     group.add(light);
   });
-
-  // === PILOTOS TRASEROS ===
   var tailMat = new THREE.MeshStandardMaterial({
     color: 0xc4472f, emissive: 0xc4472f, emissiveIntensity: 0.7, roughness: 0.3
   });
   [-1, 1].forEach(function(sgn){
-    var t = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.07, 0.04), tailMat);
-    t.position.set(sgn * bodyW*0.33, y0 + bodyH*0.65, -bodyL/2 - 0.01);
+    var t = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.07, 0.04), tailMat);
+    t.position.set(sgn * bodyW*0.34, hr - 0.14, -halfR - BV + 0.005);
     group.add(t);
   });
 
@@ -5332,7 +5422,7 @@ function update4wScene(results, kappasMap){
   // bodyW/bodyL: mismas cotas que usa rebuildChassisMesh(), recalculadas
   // aquí solo para dimensionar la sombra de contacto (más barato que
   // guardar el tamaño del grupo en cada reconstrucción).
-  var bodyW = Math.max(0.5, vehicle.track + 0.25);
+  var bodyW = Math.max(0.5, vehicle.track + 0.35);
   var bodyL = (vehicle.wheelbase||2.6) + 1.3;
 
   currentWheelDefs.forEach(function(w){
