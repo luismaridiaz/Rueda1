@@ -4994,13 +4994,25 @@ function rebuildChassisMesh(){
 
   var geomInfo = vehicleBodyGeom();
   var prof = geomInfo.profile;
-  var bodyW = Math.max(0.28, vehicle.track - 0.3);
-  var bodyL = geomInfo.bodyL;
-  var bodyH = prof.bodyH * (bodyL / 2.6) + 0.15; // escala con batalla, con un mínimo fijo para no quedarse en 0
+  var cls = geomInfo.cls;
+  // Cotas VISUALES (la colisión sigue usando geomInfo.bodyL/halfL): la
+  // carrocería cubre de eje a eje más voladizos, y su ancho llega a media
+  // banda de rodadura, de modo que las ruedas quedan en los pasos de rueda.
+  var maxA = 1.3;
+  currentWheelDefs.forEach(function(w){ maxA = Math.max(maxA, Math.abs(w.a)); });
+  var tireHalf = Math.max(0.08, (vehicle.tireWidthMm||215)/2000);
+  var R0v = Math.max(0.18, coefs.R0 || 0.315);
+  var ovh = { hatch:0.55, sport:0.62, hyper:0.70, truck:0.60 }[cls] || 0.55;
+  var bodyL = 2*maxA + 2*ovh;
+  var bodyW = Math.max(0.5, vehicle.track + tireHalf*1.1);
+  var H = { hatch:{slab:0.52, cab:0.50}, sport:{slab:0.42, cab:0.38},
+            hyper:{slab:0.34, cab:0.32}, truck:{slab:1.00, cab:0.62} }[cls] || { slab:0.5, cab:0.45 };
+  var bodyH = H.slab;
+  var y0 = Math.max(0.16, R0v*0.55);         // altura libre al suelo
+  var topY = y0 + bodyH;
 
   var group = new THREE.Group();
 
-  // Materiales: uno por rol, para poder reusar sin crear N objetos
   var matBody = new THREE.MeshStandardMaterial({
     color: chassisBodyColor(),
     roughness: 0.35, metalness: 0.55
@@ -5014,110 +5026,71 @@ function rebuildChassisMesh(){
   });
 
   // === CUERPO PRINCIPAL ===
-  var main = new THREE.Mesh(
-    new THREE.BoxGeometry(bodyW, bodyH, bodyL),
-    matBody
-  );
-  main.position.y = bodyH/2 + 0.30;
+  var main = new THREE.Mesh(new THREE.BoxGeometry(bodyW, bodyH, bodyL), matBody);
+  main.position.y = y0 + bodyH/2;
   main.castShadow = true;
   group.add(main);
 
-  // === MORRO (solo si hay taper > 0) ===
-  if (prof.noseTaper > 0.01){
-    var noseH = bodyH * (1 - prof.noseTaper * 0.6);
-    var nose = new THREE.Mesh(
-      new THREE.BoxGeometry(bodyW * (1 - prof.noseTaper * 0.5), noseH, bodyL * 0.22),
-      matBody
-    );
-    nose.position.set(0, noseH/2 + 0.30, bodyL/2 + bodyL*0.10);
-    nose.castShadow = true;
-    group.add(nose);
+  // === SPLITTER / MORRO ===
+  var splitter = new THREE.Mesh(new THREE.BoxGeometry(bodyW*1.02, 0.05, 0.28), matDark);
+  splitter.position.set(0, y0 + 0.02, bodyL/2 + 0.04);
+  splitter.castShadow = true;
+  group.add(splitter);
+  chassisNose = splitter;
 
-    // Cuña frontal (el "hocico") — solo sport/hyper
-    if (prof.cls === 'sport' || prof.cls === 'hyper'){
-      var wedge = new THREE.Mesh(
-        new THREE.ConeGeometry(bodyW*0.42, bodyL*0.16, 4),
-        matDark
-      );
-      wedge.rotation.x = Math.PI/2;
-      wedge.rotation.y = Math.PI/4;
-      wedge.position.set(0, bodyH*0.35 + 0.30, bodyL/2 + bodyL*0.20);
-      wedge.castShadow = true;
-      group.add(wedge);
-      chassisNose = wedge; // sigue funcionando el pointer del cono para el choque visual
-    }
-  }
-
-  // === CABINA ===
-  var cabW = bodyW * (prof.cls === 'truck' ? 0.95 : 0.82);
-  var cabH = prof.cabH * (bodyL / 2.6) + 0.25;
-  var cabL = prof.cabLen * bodyL;
-  var cabZ = prof.cabOff * bodyL;
-
-  var cab = new THREE.Mesh(
-    new THREE.BoxGeometry(cabW, cabH, cabL),
-    matGlass
-  );
-  cab.position.set(0, bodyH + cabH/2 + 0.30, cabZ);
+  // === CABINA: tronco de pirámide (laterales y parabrisas inclinados) ===
+  var cabH = H.cab;
+  var cabW = bodyW * (cls === 'truck' ? 0.92 : 0.80);
+  var cabL = prof.cabLen * bodyL * (cls === 'truck' ? 1 : 1.15);
+  var cabZ = prof.cabOff * bodyL + (cls === 'truck' ? 0 : 0.0);
+  var topK = cls === 'truck' ? 0.92 : (cls === 'hatch' ? 0.80 : 0.68);
+  var cabGeo = new THREE.CylinderGeometry(0.5*Math.SQRT2*topK, 0.5*Math.SQRT2, cabH, 4);
+  cabGeo.rotateY(Math.PI/4);
+  var cab = new THREE.Mesh(cabGeo, matGlass);
+  cab.scale.set(cabW, 1, cabL);
+  cab.position.set(0, topY + cabH/2, cabZ);
   cab.castShadow = true;
   group.add(cab);
 
-  // Techo de la cabina (tapa la parte de arriba, que si no se ve el hueco)
-  var cabRoof = new THREE.Mesh(
-    new THREE.BoxGeometry(cabW * 1.02, 0.04, cabL * 1.02),
-    matBody
-  );
-  cabRoof.position.set(0, bodyH + cabH + 0.30, cabZ);
+  // Techo
+  var cabRoof = new THREE.Mesh(new THREE.BoxGeometry(cabW*topK*1.02, 0.04, cabL*topK*1.02), matBody);
+  cabRoof.position.set(0, topY + cabH, cabZ);
   group.add(cabRoof);
 
   // === ALERÓN TRASERO (hyper) ===
   if (prof.wing){
-    var wingW = bodyW * 1.15;
-    var wing = new THREE.Mesh(
-      new THREE.BoxGeometry(wingW, 0.06, 0.42),
-      matDark
-    );
-    wing.position.set(0, bodyH + 0.55, -bodyL/2 - 0.05);
+    var wingW = bodyW * 1.0;
+    var wingY = topY + 0.30;
+    var wing = new THREE.Mesh(new THREE.BoxGeometry(wingW, 0.05, 0.38), matDark);
+    wing.position.set(0, wingY, -bodyL/2 + 0.05);
     wing.castShadow = true;
     group.add(wing);
-
     [-1, 1].forEach(function(sgn){
-      var strut = new THREE.Mesh(
-        new THREE.BoxGeometry(0.06, 0.55, 0.06),
-        matDark
-      );
-      strut.position.set(sgn * wingW*0.42, bodyH + 0.28, -bodyL/2 - 0.05);
+      var strut = new THREE.Mesh(new THREE.BoxGeometry(0.05, wingY - topY + 0.02, 0.05), matDark);
+      strut.position.set(sgn * wingW*0.38, topY + (wingY - topY)/2, -bodyL/2 + 0.08);
       group.add(strut);
     });
-
-    // Difusor trasero bajo
-    var diff = new THREE.Mesh(
-      new THREE.BoxGeometry(bodyW*0.9, 0.12, 0.35),
-      matDark
-    );
-    diff.position.set(0, 0.22, -bodyL/2 - 0.12);
+    var diff = new THREE.Mesh(new THREE.BoxGeometry(bodyW*0.8, 0.10, 0.3), matDark);
+    diff.position.set(0, y0 + 0.04, -bodyL/2 - 0.02);
     group.add(diff);
   }
 
   // === SPOILER PEQUEÑO (sport) ===
   if (prof.spoiler){
-    var lip = new THREE.Mesh(
-      new THREE.BoxGeometry(bodyW * 0.95, 0.05, 0.18),
-      matDark
-    );
-    lip.position.set(0, bodyH * 0.75 + 0.30, -bodyL/2 - 0.02);
+    var lip = new THREE.Mesh(new THREE.BoxGeometry(bodyW * 0.9, 0.04, 0.16), matDark);
+    lip.position.set(0, topY + 0.07, -bodyL/2 + 0.06);
     group.add(lip);
   }
 
   // === CAJA DE CARGA (truck) ===
-  if (prof.cls === 'truck'){
+  if (cls === 'truck'){
     var boxH = 1.4;
     var boxL = bodyL * 0.55;
     var box = new THREE.Mesh(
       new THREE.BoxGeometry(bodyW*0.98, boxH, boxL),
       new THREE.MeshStandardMaterial({ color:0x555a62, roughness:0.85, metalness:0.15 })
     );
-    box.position.set(0, boxH/2 + 0.30, -bodyL*0.18);
+    box.position.set(0, topY + boxH/2, -bodyL*0.2);
     box.castShadow = true;
     group.add(box);
   }
@@ -5127,8 +5100,8 @@ function rebuildChassisMesh(){
     color: 0xfff2c0, emissive: 0xfff2c0, emissiveIntensity: 0.9, roughness: 0.3
   });
   [-1, 1].forEach(function(sgn){
-    var light = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.05), headMat);
-    light.position.set(sgn * bodyW*0.35, bodyH*0.5 + 0.30, bodyL/2 + 0.02);
+    var light = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.08, 0.05), headMat);
+    light.position.set(sgn * bodyW*0.34, y0 + bodyH*0.65, bodyL/2 + 0.01);
     group.add(light);
   });
 
@@ -5137,8 +5110,8 @@ function rebuildChassisMesh(){
     color: 0xc4472f, emissive: 0xc4472f, emissiveIntensity: 0.7, roughness: 0.3
   });
   [-1, 1].forEach(function(sgn){
-    var t = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.07, 0.04), tailMat);
-    t.position.set(sgn * bodyW*0.35, bodyH*0.55 + 0.30, -bodyL/2 - 0.01);
+    var t = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.07, 0.04), tailMat);
+    t.position.set(sgn * bodyW*0.33, y0 + bodyH*0.65, -bodyL/2 - 0.01);
     group.add(t);
   });
 
@@ -5359,8 +5332,8 @@ function update4wScene(results, kappasMap){
   // bodyW/bodyL: mismas cotas que usa rebuildChassisMesh(), recalculadas
   // aquí solo para dimensionar la sombra de contacto (más barato que
   // guardar el tamaño del grupo en cada reconstrucción).
-  var bodyW = Math.max(0.28, vehicle.track - 0.3);
-  var bodyL = vehicleBodyGeom().bodyL;
+  var bodyW = Math.max(0.5, vehicle.track + 0.25);
+  var bodyL = (vehicle.wheelbase||2.6) + 1.3;
 
   currentWheelDefs.forEach(function(w){
     var mesh = wheelMeshes4w[w.id];
