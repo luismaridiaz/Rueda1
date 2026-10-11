@@ -765,6 +765,7 @@ body:has(#btnThrottle.btn-anchored) #hud {
       </div>
       <button class="btn btn-secondary" id="btnManual" style="padding:6px 12px;">❓ Ayuda</button>
       <button class="btn btn-secondary" id="btnTheme" style="padding:6px 12px;">🌙 Oscuro</button>
+      <button class="btn btn-secondary" id="btnGfx" style="padding:6px 12px;">✨ Gráficos: alta</button>
       <button class="btn btn-secondary" id="btnShareURL" style="padding:6px 12px;" title="Copiar URL con la config actual">🔗 Compartir</button>
       <button class="btn btn-secondary" id="btnUndo" style="padding:6px 12px;" title="Deshacer el último cambio" disabled>↩️ Deshacer</button>
       <button class="btn btn-secondary" id="btnSound" style="padding:6px 10px;" title="Activar sonido de motor">🔇 Sonido</button>
@@ -1637,7 +1638,7 @@ function defaultCoefs() {
     lambda_Mx: 1.0, lambda_My: 1.0,
     // Ventana de temperatura de trabajo y tasa de desgaste — genéricos por
     // defecto (calle), cada tipo en tirePresets() los ajusta a su compuesto.
-    tempOptimalC: 75, tempWindowC: 25, wearRatePerMJ: 0.0012,
+    tempOptimalC: 75, tempWindowC: 25, wearRatePerMJ: 0.0012, thermalMassJK: 2400,
     // Escalas del modo simple (no forman parte del MF estándar, son multiplicadores propios de esta UI)
     muScale: 1.0, kxScale: 1.0, kyScale: 1.0
   };
@@ -1663,7 +1664,7 @@ function tirePresets(){
   race.qsy1 = 0.008;
   // Slick: necesita calor de verdad para agarrar (ventana estrecha y alta) y
   // se consume mucho más rápido que un neumático de calle.
-  race.tempOptimalC = 95; race.tempWindowC = 12; race.wearRatePerMJ = 0.0060;
+  race.thermalMassJK = 7000; race.tempOptimalC = 95; race.tempWindowC = 12; race.wearRatePerMJ = 0.0060;
 
   var winter = JSON.parse(JSON.stringify(base));
   winter.pDx1 = 0.95; winter.pDy1 = 0.92; winter.pKx1 = 16.0; winter.pKy1 = -14.0;
@@ -3434,7 +3435,7 @@ class DahlStribeckContact {
     // Suelo de agarre en frío/sobrecalentado: un neumático de calle (ventana
     // ancha) no pierde más de ~25%; solo los de ventana estrecha (slick,
     // < 15 °C) conservan la penalización completa del 50%.
-    const tfFloor = half < 15 ? 0.5 : 0.75;
+    const tfFloor = half < 15 ? 0.65 : 0.75;
     const tf = d <= half ? 1.0 : Math.max(tfFloor, 1 - (d - half) / 45);
     return tf * (1 - 0.35 * Math.max(0, Math.min(1, this.wear)));
   }
@@ -4431,8 +4432,14 @@ function stepVehiclePhysics(dt){
       var P_rr = Math.abs(My * om); // potencia disipada por rodadura, ahora según el neumático real
       // C_th ~ banda de rodadura (no el neumático entero): ~2.4 kJ/K
       // h ~ 8 + 0.28|v| W/K  →  equilibrio ~75–85 °C a 90 km/h en unos 3 min
-      var Cth = 2400;
-      var hConv = 8 + 0.28 * Math.abs(vx_t);
+      // Un slick de competición pesa ~10 kg y su carcasa también acumula calor: con 2,4 kJ/K
+      // el patinaje en 2ª-3ª lo sacaba de su ventana de 12 °C en 3 s (desboque térmico).
+      var Cth = (coefs.thermalMassJK != null) ? coefs.thermalMassJK : 2400;
+      // A alta velocidad el flujo de aire refrigera mucho más que lineal (y la banda
+      // reparte calor a la carcasa/aro): sin este término el F1 llegaba a 140 °C
+      // a ~255 km/h solo por rodadura y perdía el agarre trasero en recta.
+      var vAbs_t = Math.abs(vx_t);
+      var hConv = 8 + 0.28 * vAbs_t + 0.05 * Math.pow(Math.max(0, vAbs_t - 30), 2);
       var Tnow = (stT.T != null) ? stT.T : Tamb;
       stT.T = Math.max(-10, Math.min(140, Tnow + ((P_slip + P_rr) - hConv*(Tnow - Tamb)) / Cth * subDt));
       r.T = stT.T;
@@ -4860,6 +4867,7 @@ function resetVehicle(opts){
 }
 
 /* ---- escena 3D del vehículo (N ruedas), aparte de la rueda de detalle ---- */
+var chassisTailGlows = [];
 var scene4w, camera4w, renderer4w, chassisGroup, chassisBody, chassisNose, groundGroup, trackRoadMesh, wheelMeshes4w = {};
 var scene4wReady = false, obstacleMesh = null;
 var dirLight4w = null, contactShadow = null;
@@ -4989,27 +4997,29 @@ function makeWheelMesh4w(){
   tp.push(new THREE.Vector2(R0*0.96,   halfW*0.88));
   tp.push(new THREE.Vector2(R0*0.86,   halfW*0.98));
   tp.push(new THREE.Vector2(rimR*0.96, halfW*0.86));
-  var tireGeo = new THREE.LatheGeometry(tp, 36);
+  var tireGeo = new THREE.LatheGeometry(tp, 64);
   tireGeo.rotateZ(Math.PI/2);                       // eje del torno Y -> eje de la rueda X
   var tireMesh = new THREE.Mesh(
     tireGeo,
-    new THREE.MeshStandardMaterial({ color:tStyle.rubber, roughness:0.9, metalness:0.04, side:THREE.DoubleSide })
+    new THREE.MeshStandardMaterial({ color:tStyle.rubber, roughness:0.9, metalness:0.04, envMapIntensity:0.35, side:THREE.DoubleSide })
   );
   spinGroup.add(tireMesh);
 
   // Llanta: barril + disco oscuro de fondo (los radios se ven por encima)
-  var rimMat = new THREE.MeshStandardMaterial({ color:rStyle.color, roughness:0.28, metalness:0.82 });
+  var rimMat = (typeof GFX !== 'undefined' && GFX.isHigh())
+    ? new THREE.MeshPhysicalMaterial({ color:rStyle.color, roughness:0.16, metalness:1.0, clearcoat:0.6, clearcoatRoughness:0.10, envMapIntensity:1.3 })
+    : new THREE.MeshStandardMaterial({ color:rStyle.color, roughness:0.28, metalness:0.82 });
   var barrelGeo = new THREE.CylinderGeometry(rimR, rimR, halfW*1.7, 28, 1, true);
   barrelGeo.rotateZ(Math.PI/2);
   var barrel = new THREE.Mesh(barrelGeo, new THREE.MeshStandardMaterial({ color:rStyle.color, roughness:0.3, metalness:0.8, side:THREE.DoubleSide }));
   spinGroup.add(barrel);
   var faceMat = new THREE.MeshStandardMaterial({ color:0x15161a, roughness:0.6, metalness:0.5, side:THREE.DoubleSide });
-  var face = new THREE.Mesh(axleX(new THREE.CircleGeometry(rimR*0.98, 28)), faceMat);
+  var face = new THREE.Mesh(axleX(new THREE.CircleGeometry(rimR*0.98, 48)), faceMat);
   face.position.x = 0;
   spinGroup.add(face);
   // Anillo exterior de la llanta (labio brillante)
   var rimRing = new THREE.Mesh(
-    axleX(new THREE.TorusGeometry(rimR, Math.max(0.01, tube*0.14), 8, 28)),
+    axleX(new THREE.TorusGeometry(rimR, Math.max(0.01, tube*0.14), 10, 56)),
     rimMat
   );
   rimRing.position.x = halfW*0.8;
@@ -5143,6 +5153,7 @@ function rebuildChassisMesh(){
   }
   chassisBody = null;
   chassisNose = null;
+  chassisTailGlows = [];
 
   var geomInfo = vehicleBodyGeom();
   var prof = geomInfo.profile;
@@ -5177,11 +5188,23 @@ function rebuildChassisMesh(){
   var deckDrop = { hatch:0.02, sport:0.06, hyper:0.10, truck:0.0 }[cls] || 0.03;
 
   var group = new THREE.Group();
-  var matBody = new THREE.MeshStandardMaterial({ color: chassisBodyColor(), roughness: 0.3, metalness: 0.6 });
+  var gfxHigh = (typeof GFX !== 'undefined') && GFX.isHigh();
+  var matBody = gfxHigh
+    ? new THREE.MeshPhysicalMaterial({ color: chassisBodyColor(), roughness: 0.38, metalness: 0.55, clearcoat: 1.0, clearcoatRoughness: 0.06, envMapIntensity: 1.0 })
+    : new THREE.MeshStandardMaterial({ color: chassisBodyColor(), roughness: 0.3, metalness: 0.6 });
   var matDark = new THREE.MeshStandardMaterial({ color: 0x14141a, roughness: 0.55, metalness: 0.35 });
   var matGlass = new THREE.MeshStandardMaterial({
-    color: 0x20262e, roughness: 0.08, metalness: 0.2, transparent: true, opacity: 0.88
+    color: 0x20262e, roughness: 0.08, metalness: gfxHigh ? 0.55 : 0.2, transparent: true, opacity: 0.88, envMapIntensity: gfxHigh ? 1.6 : 1
   });
+
+  // Sombra de contacto (solo calidad alta): mancha oscura difusa bajo el coche.
+  function addContactShadow(g, zMin, zMax, width){
+    if (!gfxHigh) return;
+    var m = new THREE.Mesh(new THREE.PlaneGeometry(width, zMax - zMin),
+      new THREE.MeshBasicMaterial({ map: GFX.contactTexture(), transparent: true, depthWrite: false, opacity: 0.9, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 }));
+    m.rotation.x = -Math.PI/2; m.position.set(0, 0.012, (zMin + zMax)/2); m.renderOrder = 1;
+    g.add(m);
+  }
 
   // Extruye un perfil lateral (x = z mundo hacia delante, y = altura) a lo
   // ancho 'w', con bordes redondeados 'bev'. Devuelve la geometría centrada.
@@ -5341,6 +5364,7 @@ function rebuildChassisMesh(){
     group.add(rain);
     chassisNose = fw1;
 
+    addContactShadow(group, zTail - 0.3, zNose + 0.3, tubW + 1.6);
     chassisBody = group;
     chassisGroup.add(chassisBody);
     return;
@@ -5488,6 +5512,7 @@ function rebuildChassisMesh(){
     var light = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.07, 0.04), headMat);
     light.position.set(sgn * bodyW*0.30, hf - 0.14, halfF + BV - 0.005);
     group.add(light);
+    if (gfxHigh){ var hg = GFX.glowSprite(0xfff0c8, 0.55, 0.55); hg.position.set(sgn * bodyW*0.30, hf - 0.14, halfF + BV + 0.05); group.add(hg); }
   });
   // Pilotos traseros: carcasa oscura + lente roja con forma (cuña que sube hacia
   // el exterior) + luz de freno según la clase: anillos (hatch), barra LED
@@ -5564,6 +5589,14 @@ function rebuildChassisMesh(){
     ind.position.set(sgn*(tXo - 0.07), tyC - tH*0.95 - 0.03, tzS - 0.006);
     group.add(ind);
   });
+  chassisTailGlows = [];
+  if (gfxHigh){
+    [-1, 1].forEach(function(sgn){
+      var tg = GFX.glowSprite(0xff2a18, 0.62, 0.30);
+      tg.position.set(sgn*(tXi + tXo)/2, tyC, tzS - 0.07);
+      group.add(tg); chassisTailGlows.push(tg);
+    });
+  }
   if (cls === 'sport' || cls === 'hyper'){
     // Tercera luz continua entre pilotos
     var barW = (tXi * 2) * 0.96;
@@ -5599,6 +5632,7 @@ function rebuildChassisMesh(){
   rbump.position.set(0, y0 + 0.08, -halfR - BV + 0.002);
   group.add(rbump);
 
+  addContactShadow(group, -halfR - 0.35, halfF + 0.35, bodyW + 0.7);
   chassisBody = group;
   chassisGroup.add(chassisBody);
 }
@@ -5689,6 +5723,7 @@ function initScene4w(){
   var fill = new THREE.DirectionalLight(0xaaccff,0.45);
   fill.position.set(-15,20,-10);
   scene4w.add(fill);
+  if (typeof GFX !== 'undefined') GFX.attach(renderer4w, scene4w, dirLight4w);
   groundGroup = new THREE.Group();
   scene4w.add(groundGroup);
 
@@ -5697,7 +5732,8 @@ function initScene4w(){
     map: asphaltTex,
     color:0xffffff,
     roughness:0.95,
-    metalness:0.02
+    metalness:0.02,
+    envMapIntensity:0.25
   });
   var asphaltPlane = new THREE.Mesh(new THREE.PlaneGeometry(400, 400, 1, 1), asphaltMat);
   asphaltPlane.rotation.x = -Math.PI/2;
@@ -5801,6 +5837,10 @@ function initScene4w(){
 
 function update4wScene(results, kappasMap){
   if (!scene4wReady) return;
+  // Los pilotos brillan más al frenar (falso bloom, solo calidad alta)
+  for (var gi = 0; gi < chassisTailGlows.length; gi++){
+    chassisTailGlows[gi].material.opacity = 0.30 + 0.55*Math.min(1, controls.brake || 0);
+  }
   syncTrafficMeshes();
   drawGPSMap();
   updateTelemetry();
@@ -6106,7 +6146,11 @@ function buildTrackMesh(){
     trackRoadMesh.material.dispose();
     trackRoadMesh = null;
   }
-  if (!TRACK.segs.length || !scene4w){ RacingLine.clear(); return; }
+  if (!TRACK.segs.length || !scene4w){
+    RacingLine.clear();
+    if (scene4w && typeof buildTrackBarriers === 'function') buildTrackBarriers();   // sin circuito: retira también las barreras (antes se quedaban)
+    return;
+  }
   var width = TRACK.width || 10;
   var stepLen = 4;
   var n = Math.max(2, Math.ceil(TRACK.totalLength/stepLen));
@@ -6141,6 +6185,7 @@ function buildTrackMesh(){
     color:0xffffff,
     roughness:0.92,
     metalness:0.02,
+    envMapIntensity:0.25,
     side:THREE.DoubleSide
   });
   trackRoadMesh = new THREE.Mesh(geo, mat);
@@ -7589,6 +7634,143 @@ var WindTunnel = (function(){
 })();
 
 /* ============================================================
+   CALIDAD GRÁFICA (solo visual, no toca la física)
+   'high': entorno procedural (cielo + sol + paneles de luz) como mapa de
+   reflejos (PMREM), tone mapping ACES, barniz en la carrocería, sombras de
+   2048 px y sombra de contacto bajo el coche. 'normal': el aspecto anterior.
+   Si no hay elección guardada y el equipo no llega a ~24 FPS en los primeros
+   segundos, baja solo a 'normal'.
+   ============================================================ */
+var GFX = (function(){
+  var quality = 'high', userChose = false, renderer = null, scene = null, sun = null, envTex = null, pmrem = null;
+  var contactTex = null, probe = { n: 0, t: 0, last: 0, done: false };
+  try { var sv = localStorage.getItem('apex_gfx'); if (sv === 'normal' || sv === 'high'){ quality = sv; userChose = true; } } catch(e){}
+
+  function makeEnvScene(){
+    var env = new THREE.Scene();
+    // Cielo: esfera con color por vértice (degradado horizonte→cénit y suelo oscuro).
+    var skyGeo = new THREE.SphereGeometry(50, 32, 16), pos = skyGeo.attributes.position, cols = [];
+    var zen = new THREE.Color(0.20, 0.32, 0.55), hor = new THREE.Color(0.62, 0.62, 0.62), gnd = new THREE.Color(0.10, 0.10, 0.10), tmp = new THREE.Color();
+    for (var vi = 0; vi < pos.count; vi++){
+      var hy = pos.getY(vi) / 50;
+      if (hy >= 0) tmp.copy(hor).lerp(zen, Math.pow(hy, 0.55));
+      else tmp.copy(hor).multiplyScalar(0.55).lerp(gnd, Math.min(1, -hy * 2.5));
+      cols.push(tmp.r, tmp.g, tmp.b);
+    }
+    skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+    env.add(new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide })));
+    // Sol y dos paneles de luz (softbox) para que el barniz tenga reflejos con forma
+    var sunM = new THREE.Mesh(new THREE.SphereGeometry(2.5, 16, 8), new THREE.MeshBasicMaterial({ color: 0xddd2bd }));
+    sunM.position.set(24, 34, 12); sunM.scale.setScalar(1.0); env.add(sunM);
+    var box = new THREE.MeshBasicMaterial({ color: 0xcfd3d8, side: THREE.DoubleSide });
+    [[-30, 14, -6, 0.5], [6, 12, -36, 0.0]].forEach(function(b){
+      var m = new THREE.Mesh(new THREE.PlaneGeometry(26, 7), box);
+      m.position.set(b[0], b[1], b[2]); m.lookAt(0, 0, 0); env.add(m);
+    });
+    return env;
+  }
+  function buildEnv(){
+    if (envTex) return envTex;
+    if (typeof THREE.PMREMGenerator !== 'function') return null;
+    try {
+      pmrem = new THREE.PMREMGenerator(renderer);
+      var envScene = makeEnvScene();
+      envTex = pmrem.fromScene(envScene, 0.02).texture;
+      envScene.traverse(function(o){ if (o.geometry) o.geometry.dispose(); if (o.material) o.material.dispose(); });
+      pmrem.dispose();
+    } catch(e){ envTex = null; console.warn('Entorno de reflejos no disponible:', e); }
+    return envTex;
+  }
+  function apply(){
+    if (!renderer || !scene) return;
+    var hi = (quality === 'high');
+    var tex = hi ? buildEnv() : null;
+    if (hi && !tex) hi = false;                       // sin soporte: aspecto normal
+    renderer.toneMapping = hi ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+    renderer.toneMappingExposure = 1.05;
+    scene.environment = hi ? tex : null;
+    if (sun){
+      var sz = hi ? 2048 : 1024;
+      if (sun.shadow.mapSize.x !== sz){
+        sun.shadow.mapSize.set(sz, sz);
+        if (sun.shadow.map){ sun.shadow.map.dispose(); sun.shadow.map = null; }
+      }
+    }
+    scene.traverse(function(o){
+      if (!o.material) return;
+      (Array.isArray(o.material) ? o.material : [o.material]).forEach(function(m){ m.needsUpdate = true; });
+    });
+  }
+  function isHigh(){ return quality === 'high' && !!scene && !!scene.environment; }
+  /* Sombra de contacto: mancha radial oscura bajo el coche (multiplica el asfalto). */
+  function contactTexture(){
+    if (contactTex) return contactTex;
+    var c = document.createElement('canvas'); c.width = c.height = 128;
+    var g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 6, 64, 64, 62);
+    gr.addColorStop(0, 'rgba(0,0,0,0.80)'); gr.addColorStop(0.55, 'rgba(0,0,0,0.42)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    contactTex = new THREE.CanvasTexture(c);
+    return contactTex;
+  }
+  /* Falso bloom: sprites aditivos con degradado radial sobre faros y pilotos
+     (sin postproceso, casi sin coste). Materiales compartidos por color. */
+  var glowTex = null, glowMats = {};
+  function glowMaterial(hex){
+    if (!glowTex){
+      var c = document.createElement('canvas'); c.width = c.height = 64;
+      var g = c.getContext('2d'), gr = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+      gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,255,255,0.45)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+      glowTex = new THREE.CanvasTexture(c);
+    }
+    if (!glowMats[hex]) glowMats[hex] = new THREE.SpriteMaterial({ map: glowTex, color: hex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0.6 });
+    return glowMats[hex];
+  }
+  function glowSprite(hex, size, opacity){
+    var sp = new THREE.Sprite(glowMaterial(hex).clone());   // clon: la opacidad se anima por luz (freno)
+    sp.material.map = glowTex; sp.scale.set(size, size, 1); sp.material.opacity = opacity; sp.renderOrder = 3;
+    return sp;
+  }
+  function attach(r, sc, dirLight){ renderer = r; scene = sc; sun = dirLight; apply(); }
+  function set(q, transient){
+    quality = (q === 'normal') ? 'normal' : 'high';
+    if (!transient){                                  // 'transient': pruebas internas, no cuenta como elección del usuario
+      userChose = true;
+      try { localStorage.setItem('apex_gfx', quality); } catch(e){}
+    }
+    apply();
+    if (typeof rebuildChassisMesh === 'function') rebuildChassisMesh();
+    syncButton();
+    return quality;
+  }
+  function syncButton(){
+    var b = document.getElementById('btnGfx');
+    if (b) b.textContent = (quality === 'high' && scene && scene.environment) ? '✨ Gráficos: alta' : '🖼️ Gráficos: normal';
+  }
+  /* Medidor de rendimiento: ~100 fotogramas tras 1 s de calentamiento. */
+  function tick(){
+    if (userChose || probe.done || quality !== 'high' || document.hidden) { probe.last = 0; return; }
+    var now = performance.now();
+    if (!probe.last){ probe.last = now; return; }
+    var dt = now - probe.last; probe.last = now;
+    probe.t += dt; if (probe.t < 1000) return;
+    probe.n++; probe.sum = (probe.sum || 0) + dt;
+    if (probe.n >= 100){
+      probe.done = true;
+      if (probe.sum / probe.n > 1000/24){
+        quality = 'normal'; apply();
+        if (typeof rebuildChassisMesh === 'function') rebuildChassisMesh();
+        syncButton();
+        if (typeof showToast === 'function') showToast('Gráficos reducidos a normal por rendimiento (puedes cambiarlo arriba)');
+      }
+    }
+  }
+  function bind(){ var b = document.getElementById('btnGfx'); if (b) b.addEventListener('click', function(){ set(quality === 'high' ? 'normal' : 'high'); }); syncButton(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  return { attach: attach, set: set, tick: tick, isHigh: isHigh, glowSprite: glowSprite, contactTexture: contactTexture, get quality(){ return quality; }, syncButton: syncButton };
+})();
+
+/* ============================================================
    BUCLE PRINCIPAL
    ============================================================ */
 var frameCount = 0, lastFpsT = performance.now();
@@ -7604,6 +7786,7 @@ function loop(ts){
     frameCount = 0; lastFpsT = now;
   }
 
+  if (typeof GFX !== 'undefined') GFX.tick();
   simulateStep(dt);
   // Reproducir: escribe controls.* ANTES de que stepVehicle los use este
   // mismo frame — si se moviera a después, este frame usaría los valores
@@ -10096,7 +10279,7 @@ function runSelfTest(){
   try {
     var cCold = new DahlStribeckContact(25);
     check('Neumático de calle a 25 °C conserva ≥75% de agarre', cCold.tempWearFactor(75, 25) >= 0.75, 'tf=' + cCold.tempWearFactor(75, 25));
-    check('Neumático slick (ventana 12) en frío sí pierde hasta el 50%', cCold.tempWearFactor(95, 12) <= 0.51, 'tf=' + cCold.tempWearFactor(95, 12));
+    check('Neumático slick (ventana 12) en frío pierde hasta el 35%', cCold.tempWearFactor(95, 12) <= 0.66 && cCold.tempWearFactor(95, 12) >= 0.64, 'tf=' + cCold.tempWearFactor(95, 12));
     var cOpt = new DahlStribeckContact(75);
     check('Temperatura óptima da factor 1', Math.abs(cOpt.tempWearFactor(75, 25) - 1) < 1e-9);
   } catch(e){ check('Temperatura sin excepción', false, e.message); }
@@ -10416,6 +10599,69 @@ function runSelfTest(){
     resetVehicle({ silent: true });
     AeroPiecesUI.render();
   } catch(e){ check('Aero por piezas / túnel sin excepción', false, e.message); }
+
+  // ---- 25j. Calidad gráfica y limpieza de barreras ----
+  try {
+    var svGfx = GFX.quality;
+    var hasPm = typeof THREE.PMREMGenerator === 'function' && !!renderer4w;
+    GFX.set('high', true);
+    var envHigh = !!scene4w.environment;
+    GFX.set('normal', true);
+    var envNormal = !!scene4w.environment;
+    check('Calidad gráfica: "normal" quita el mapa de reflejos' + (hasPm ? ' y "alta" lo activa' : ' (sin PMREM en este entorno: alta cae a normal)'),
+      envNormal === false && (hasPm ? envHigh === true : envHigh === false));
+    var bodyType = (function(){ var t = ''; if (chassisBody) chassisBody.traverse(function(o){ if (o.material && o.material.clearcoat !== undefined) t = 'physical'; }); return t; })();
+    check('Calidad normal: carrocería sin barniz físico', bodyType === '');
+    GFX.set(svGfx, true);
+    var svTrB = TRACK;
+    loadTrackPreset('oval');
+    var nB = trackBarrierMeshes.length;
+    TRACK = new TrackSystem(); buildTrackMesh();
+    check('Quitar el circuito retira también las barreras (' + nB + ' → ' + trackBarrierMeshes.length + ')', nB > 0 ? trackBarrierMeshes.length === 0 : true);
+    TRACK = svTrB; buildTrackMesh();
+  } catch(e){ check('Calidad gráfica sin excepción', false, e.message); }
+
+  // ---- 25k. Falso bloom de luces ----
+  try {
+    var svG2 = GFX.quality;
+    var hasEnv = typeof THREE.PMREMGenerator === 'function' && !!renderer4w;
+    GFX.set('high', true);
+    document.getElementById('btnCarHyper').click();
+    var glowsHi = chassisTailGlows.length;
+    var brkSv = controls.brake;
+    controls.brake = 1; update4wScene({}, {}); var opB = chassisTailGlows.length ? chassisTailGlows[0].material.opacity : 0;
+    controls.brake = 0; update4wScene({}, {}); var opN = chassisTailGlows.length ? chassisTailGlows[0].material.opacity : 0;
+    controls.brake = brkSv;
+    GFX.set('normal', true);
+    var glowsLo = chassisTailGlows.length;
+    check('Luces: 2 halos traseros en calidad alta (' + glowsHi + '), ninguno en normal (' + glowsLo + ')', hasEnv ? (glowsHi === 2 && glowsLo === 0) : (glowsLo === 0));
+    if (hasEnv) check('Luces: el halo trasero brilla más al frenar (' + opN.toFixed(2) + ' → ' + opB.toFixed(2) + ')', opB > opN + 0.3);
+    GFX.set(svG2, true);
+    document.getElementById('btnCarHatch').click();
+  } catch(e){ check('Falso bloom sin excepción', false, e.message); }
+
+  // ---- 25l. F1 a fondo desde parado (neumáticos precalentados, como al arrancar): sin trompo por desboque térmico ----
+  try {
+    var svRunL = vehicleRunning, svThL = touchControls.throttle, svGmL = vehicle.gearMode;
+    var btnTcL = document.getElementById('btnTrackClear'); if (btnTcL) btnTcL.click();
+    document.getElementById('btnCarF1').click();
+    vehicleRunning = true;
+    resetVehicle({ gear: 1, u: 0, silent: true });
+    vehicle.gearMode = 'AUTO'; vehicle._noCreepUntil = 0; vehicle._launchUntil = 0;
+    currentWheelDefs.forEach(function(w){ getBristle(w.id).T = coefs.tempOptimalC || 75; });
+    touchControls.throttle = 1; touchControls.steer = 0; touchControls.brake = 0;
+    var psiMaxL = 0, TmaxL = 0;
+    for (var iF = 0; iF < 60 * 30; iF++){
+      stepVehiclePhysics(1/60);
+      psiMaxL = Math.max(psiMaxL, Math.abs(chassis.psi || 0));
+      if (iF % 30 === 0) currentWheelDefs.forEach(function(w){ TmaxL = Math.max(TmaxL, getBristle(w.id).T); });
+    }
+    var vF1 = chassis.u * 3.6;
+    check('F1 arranque precalentado: sin trompo en recta (|ψ| máx ' + (psiMaxL * 57.3).toFixed(1) + '°)', psiMaxL < 0.15, 'tire=' + vehicle.tireType + ' Cth=' + coefs.thermalMassJK + ' opt=' + coefs.tempOptimalC + ' surf=' + vehicle.surface + ' tcs=' + vehicle.tcsOn + ' pcs=' + (vehicle.aeroPieces||[]).length + ' rho=' + vehicle.rearAlphaFactor + ' steer=' + controls.steerTarget + ' wear=' + getBristle(currentWheelDefs[2].id).wear + ' T=' + getBristle(currentWheelDefs[2].id).T);
+    check('F1 a fondo 30 s: neumático < 125 °C (' + TmaxL.toFixed(0) + ') y sigue acelerando (' + vF1.toFixed(0) + ' km/h)', TmaxL < 125 && vF1 > 280);
+    touchControls.throttle = svThL; vehicleRunning = svRunL; vehicle.gearMode = svGmL;
+    document.getElementById('btnCarHatch').click();
+  } catch(e){ check('F1 arranque precalentado sin excepción', false, e.message); }
 
   // ---- 25e. Inicio rápido: aplica coche, circuito y clima con los controles de siempre ----
   try {
