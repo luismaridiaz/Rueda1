@@ -4096,6 +4096,8 @@ function stepVehicle(dt){
   document.getElementById('carOverlay').textContent =
     'v=' + (v*3.6).toFixed(1) + ' km/h · ' + rpmShow.toFixed(0) + ' rpm · M' + gearLabel(currentGear()) +
     ' · ax=' + chassis._axG.toFixed(2) + 'g · ay=' + chassis._ayG.toFixed(2) + 'g' +
+    ' · gas ' + Math.round(100*(controls.throttle||0)) + '% freno ' + Math.round(100*(controls.brake||0)) + '%' +
+    (tcsCtl.active ? ' TCS' : '') + (absCtl.active ? ' ABS' : '') +
     (chassis._onTrack === false ? ' · FUERA DE PISTA' : '') +
     (chassis._acc?' ACC':'')+(chassis._lka?' LKA':'')+(chassis._aeb?' AEB':'') +
     (chassis._hit ? (' HIT '+((chassis._hitN||0)/1000).toFixed(1)+'kN') : '');
@@ -4863,7 +4865,17 @@ function resetVehicle(opts){
     if (typeof wheelHop !== 'undefined') wheelHop[w.id] = {z:0,v:0};
     if (typeof bristle !== 'undefined' && bristle[w.id]){ bristle[w.id].zX=0; bristle[w.id].zY=0; bristle[w.id].stuck=false; }
   });
-  if (!opts.silent) showToast('🚗 Coche reiniciado');
+  if (!opts.silent){
+    // Reiniciar el coche también reinicia los neumáticos: antes conservaban la
+    // temperatura (hasta 140 °C tras un trompo) y el desgaste de la prueba anterior,
+    // así que la siguiente salida empezaba con el agarre ya degradado.
+    var chkPreR = document.getElementById('chkPreheat');
+    var T0r = (chkPreR && chkPreR.checked && typeof coefs !== 'undefined' && coefs.tempOptimalC != null) ? coefs.tempOptimalC : (vehicle.ambientTemp || 25);
+    currentWheelDefs.forEach(function(w){
+      if (typeof bristle !== 'undefined' && bristle[w.id]){ bristle[w.id].T = T0r; bristle[w.id].wear = 0; }
+    });
+    showToast('🚗 Coche reiniciado');
+  }
 }
 
 /* ---- escena 3D del vehículo (N ruedas), aparte de la rueda de detalle ---- */
@@ -6501,6 +6513,12 @@ function bindVehicleControls(){
   function applyCarClassPreset(cls){
     var preset = CAR_CLASS_PRESETS[cls];
     if (!preset) return;
+    // Elegir coche = coche limpio: los ajustes de las pruebas de baches/rebote ("Hop test"),
+    // que el autoguardado conserva entre sesiones, hacían que el F1 cabeceara ~3° a 12 km/h.
+    var HOP_RESET = { bumpsOn:false, bumpDepth:0.04, bumpFreq:0.8, hopDamp:0.30, tireKz:180000, unsprung:40 };
+    Object.keys(HOP_RESET).forEach(function(k){ vehicle[k] = HOP_RESET[k]; });
+    var bumpSel = document.getElementById('vBumpOn'); if (bumpSel) bumpSel.value = '0';
+    var bumpLab = document.getElementById('valBumpOn'); if (bumpLab) bumpLab.textContent = 'off';
     var wasF1 = (vehicle._bodyClass === 'f1' && cls !== 'f1');
     if (wasF1){
       Object.keys(CAR_CLASS_RESET).forEach(function(k){
@@ -6510,7 +6528,7 @@ function bindVehicleControls(){
     Object.keys(preset).forEach(function(k){ vehicle[k] = (k === 'gearRatios') ? preset[k].slice() : (k === 'aeroPieces') ? cloneAeroPieces(preset[k]) : preset[k]; });
     var geomChanged = (cls === 'f1') || wasF1;
     vehicle._bodyClass = cls; vehicle._bodyClassSig = vehicle.mass + '|' + vehicle.engTmax;
-    var syncSrc = wasF1 ? Object.assign({}, CAR_CLASS_RESET, preset) : preset;
+    var syncSrc = Object.assign({}, HOP_RESET, wasF1 ? CAR_CLASS_RESET : {}, preset);
     (typeof map !== 'undefined' ? map : []).concat(typeof rimMap !== 'undefined' ? rimMap : []).forEach(function(cfg){
       if (!(cfg.key in syncSrc)) return;
       var el = document.getElementById(cfg.id);
@@ -10659,9 +10677,26 @@ function runSelfTest(){
     var vF1 = chassis.u * 3.6;
     check('F1 arranque precalentado: sin trompo en recta (|ψ| máx ' + (psiMaxL * 57.3).toFixed(1) + '°)', psiMaxL < 0.15, 'tire=' + vehicle.tireType + ' Cth=' + coefs.thermalMassJK + ' opt=' + coefs.tempOptimalC + ' surf=' + vehicle.surface + ' tcs=' + vehicle.tcsOn + ' pcs=' + (vehicle.aeroPieces||[]).length + ' rho=' + vehicle.rearAlphaFactor + ' steer=' + controls.steerTarget + ' wear=' + getBristle(currentWheelDefs[2].id).wear + ' T=' + getBristle(currentWheelDefs[2].id).T);
     check('F1 a fondo 30 s: neumático < 125 °C (' + TmaxL.toFixed(0) + ') y sigue acelerando (' + vF1.toFixed(0) + ' km/h)', TmaxL < 125 && vF1 > 280);
+    // Reiniciar el coche reinicia los neumáticos (antes arrastraban 140 °C y el desgaste)
+    var chkPreT = document.getElementById('chkPreheat'), svPreT = chkPreT ? chkPreT.checked : true;
+    if (chkPreT) chkPreT.checked = true;
+    currentWheelDefs.forEach(function(w){ var bb = getBristle(w.id); bb.T = 140; bb.wear = 0.5; });
+    resetVehicle({});
+    var bR = getBristle(currentWheelDefs[0].id);
+    check('Reiniciar coche: neumáticos vuelven a su temperatura óptima (' + bR.T + ') y sin desgaste (' + bR.wear + ')', bR.T === coefs.tempOptimalC && bR.wear === 0);
+    if (chkPreT) chkPreT.checked = svPreT;
     touchControls.throttle = svThL; vehicleRunning = svRunL; vehicle.gearMode = svGmL;
     document.getElementById('btnCarHatch').click();
   } catch(e){ check('F1 arranque precalentado sin excepción', false, e.message); }
+
+  // ---- 25m. Elegir coche limpia baches y ajustes de rebote persistidos ----
+  try {
+    vehicle.bumpsOn = true; vehicle.hopDamp = 0.08; vehicle.tireKz = 150000; vehicle.unsprung = 45; vehicle.bumpDepth = 0.08;
+    document.getElementById('btnCarF1').click();
+    check('Elegir coche: baches off y rebote por defecto (' + vehicle.bumpsOn + '/' + vehicle.hopDamp + '/' + vehicle.tireKz + ')',
+      vehicle.bumpsOn === false && vehicle.hopDamp === 0.30 && vehicle.tireKz === 180000 && vehicle.bumpDepth === 0.04);
+    document.getElementById('btnCarHatch').click();
+  } catch(e){ check('Limpieza de baches sin excepción', false, e.message); }
 
   // ---- 25e. Inicio rápido: aplica coche, circuito y clima con los controles de siempre ----
   try {
