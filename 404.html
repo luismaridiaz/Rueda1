@@ -1510,6 +1510,29 @@ body:has(#btnThrottle.btn-anchored) #hud {
     </div>
     <div class="stats-grid" id="wheelReadout" style="grid-template-columns:repeat(auto-fill,minmax(110px,1fr)); margin-top:12px; font-size:11px;">
     </div>
+    <div class="level-adjust" id="aeroLab" style="margin-top:12px;">
+      <div class="section-title">🌬️ Aerodinámica por piezas + túnel de viento</div>
+      <div id="aeroPiecesPanel" style="padding:10px;background:var(--bg-input);border:1px solid var(--border-color);border-radius:10px;">
+        <div id="aeroPiecesEmpty" style="font-size:12px;color:var(--text-secondary);padding:4px;">
+          Este coche usa el modelo aerodinámico agregado. Elige el preset <b>Fórmula 1</b> para activar el modo por piezas.
+        </div>
+        <div id="aeroPiecesList"></div>
+        <div id="aeroPiecesSummary" style="display:none;font-size:12px;padding-top:8px;margin-top:6px;border-top:1px solid var(--border-color);line-height:1.55;"></div>
+        <div id="aeroTunnelWrap" style="display:none;margin-top:10px;">
+          <button type="button" class="btn btn-primary" id="btnAeroTunnel" style="width:100%;padding:10px;">🌬️ Ejecutar barrido de túnel de viento</button>
+          <div id="aeroTunnelResults" style="display:none;margin-top:10px;">
+            <div id="aeroTunnelSummary" style="font-size:12px;line-height:1.5;padding:8px 10px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:8px;margin-bottom:8px;"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+              <div class="chart-box"><div class="ct">Carga y resistencia vs velocidad</div><canvas id="tunnelChartSpeed"></canvas></div>
+              <div class="chart-box"><div class="ct">Balance frontal vs yaw</div><canvas id="tunnelChartBalance"></canvas></div>
+              <div class="chart-box"><div class="ct">Polar (yaw): Cl·A vs Cd·A</div><canvas id="tunnelChartPolar"></canvas></div>
+              <div class="chart-box"><div class="ct">Cl·A vs altura al suelo</div><canvas id="tunnelChartRh"></canvas></div>
+            </div>
+            <button type="button" class="btn btn-secondary" id="btnAeroTunnelCsv" style="width:100%;margin-top:8px;">📥 Descargar CSV del barrido</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
   </div>
 </details>
@@ -2230,7 +2253,7 @@ var vehicle = {
   absTarget: 0.15, tcsLimit: 0.12,
   surface: 'dry', surfaceMaterial: 'asphalt',
   ambientTemp: 25, Cd: 0.32, area: 2.2, downforcePct: 100, regenPct: 0,
-  aeroBalanceFront: 40, groundEffectGain: 0.30, aeroPitchSensitivity: 0.5,
+  aeroBalanceFront: 40, groundEffectGain: 0.30, aeroPitchSensitivity: 0.5, aeroPieces: [], staticRideHeightMm: 60,
   aeroYawDragGain: 0.6, aeroRollSensitivity: 0.15,
   bumpsOn: false, bumpDepth: 0.04, bumpFreq: 0.8, bumpAsym: 0.4,
   epsOn: true, epsAssist: 0.7, epsReturn: 0.55,
@@ -2316,6 +2339,7 @@ var DriveCorePersist = (function(){
       if (k === 'transmission') return;
       vehicle[k] = snap[k];
     });
+    if (!('aeroPieces' in snap)) vehicle.aeroPieces = [];   // guardados anteriores al modo por piezas
     if (snap.transmission) Object.assign(vehicle.transmission, snap.transmission);
     return true;
   }
@@ -2398,17 +2422,25 @@ class AeroModel {
     this.aeroPitchSensitivity = params.aeroPitchSensitivity ?? 0.5;
     this.aeroRollSensitivity = params.aeroRollSensitivity ?? 0.15;
     this.aeroYawDragGain = params.aeroYawDragGain ?? 0.6;
+    // Modo por piezas: si hay piezas, sustituyen al modelo agregado de carga.
+    this.pieces = (params.aeroPieces && params.aeroPieces.length) ? params.aeroPieces : null;
+    this.staticRideHeightMm = params.staticRideHeightMm ?? 60;
   }
   /** u,w = velocidad long/lat (m/s); zS = compresion de suspension (m, - = agachado); axG,ayG = g's longitudinal/lateral.
       Devuelve totales por eje (no por rueda): el reparto entre ruedas de un mismo eje, y entre ejes si hay
       más de dos (camiones), lo hace quien llama — así no se asume un coche de exactamente 4 ruedas. */
   compute(u, w, zS, axG, ayG) {
+    return this.pieces ? this._computePerPiece(u, w, zS, axG, ayG) : this._computeLegacy(u, w, zS, axG, ayG);
+  }
+  /* Modelo agregado (coches sin piezas). */
+  _computeLegacy(u, w, zS, axG, ayG) {
     const rho = 1.2;
-    const q = 0.5 * rho * u * Math.abs(u);
+    const q = 0.5 * rho * u * Math.abs(u);           // con signo: la resistencia se opone al movimiento
+    const qDF = 0.5 * rho * u * u;                   // la carga nunca es negativa (marcha atrás incluida)
     const betaSlip = Math.atan2(w, Math.abs(u) > 0.3 ? u : 0.3);
     const yawDragMult = 1 + this.aeroYawDragGain * Math.pow(Math.sin(betaSlip), 2);
     const Fdrag = q * this.Cd * this.area * yawDragMult;
-    const baseDF = q * this.area * 0.35 * (this.downforcePct / 100);
+    const baseDF = qDF * this.area * 0.35 * (this.downforcePct / 100);
     const squat = Math.max(0, -(zS || 0));
     const geMult = 1 + this.groundEffectGain * Math.min(2.5, squat / 0.05);
     const FaeroZ = baseDF * geMult;
@@ -2418,6 +2450,46 @@ class AeroModel {
     const FzFront = FaeroZ * fFrac, FzRear = FaeroZ - FzFront;
     const rollShift = this.aeroRollSensitivity * 0.10 * Math.max(-1, Math.min(1, (ayG || 0)));
     return { Fdrag, FaeroZ, FzFront, FzRear, rollShift };
+  }
+  /* Modelo por piezas. Cada pieza aporta Cl·A (m²); su resistencia es
+     cdBase + cdInducedK·Cl² (el arrastre inducido crece con el cuadrado de la
+     carga). El Cd·área del cuerpo se suma aparte.
+     No linealidades (modelo de coeficientes, NO es CFD):
+     - Pérdida por yaw: cada pieza pierde carga como (|yaw|/yawStallDeg)^yawExp,
+       hasta 0 en yawStallDeg.
+     - Altura al suelo (solo piezas con rhGain, p.ej. el suelo): caída parabólica
+       alrededor de rhOptimalMm con anchura rhWindowMm, nunca por debajo del 15 %.
+     No modela vórtices, aire sucio ni porpoising. Sustituye al agregado, así que
+     la sensibilidad al cabeceo (aeroPitchSensitivity) y groundEffectGain del
+     modo agregado no se aplican aquí: el efecto suelo va por la altura al suelo. */
+  _computePerPiece(u, w, zS, axG, ayG) {
+    const rho = 1.2;
+    const q = 0.5 * rho * u * Math.abs(u);
+    const qDF = 0.5 * rho * u * u;
+    const betaSlip = Math.atan2(w, Math.abs(u) > 0.3 ? u : 0.3);
+    const yawDeg = Math.abs(betaSlip) * 180 / Math.PI;
+    const rhMm = this.staticRideHeightMm + (zS || 0) * 1000;
+    let totalFz = 0, totalFzFront = 0, piecesDrag = 0;
+    for (const p of this.pieces) {
+      if (!p.enabled) continue;
+      let cl = p.clA || 0;
+      if (p.yawStallDeg > 0 && yawDeg > 0) {
+        const yawRatio = Math.min(1, Math.pow(yawDeg / p.yawStallDeg, p.yawExp || 2));
+        cl *= (1 - yawRatio);
+      }
+      if (p.rhGain && p.rhGain > 0) {
+        const delta = (rhMm - (p.rhOptimalMm || 50)) / (p.rhWindowMm || 35);
+        cl *= Math.max(0.15, 1 - p.rhGain * delta * delta);
+      }
+      const Fz = qDF * cl;
+      totalFz += Fz;
+      totalFzFront += Fz * (p.balFront != null ? p.balFront : 0.5);
+      piecesDrag += q * ((p.cdBase || 0) + (p.cdInducedK || 0) * cl * cl);
+    }
+    const yawDragMult = 1 + this.aeroYawDragGain * Math.pow(Math.sin(betaSlip), 2);
+    const Fdrag = q * this.Cd * this.area * yawDragMult + piecesDrag;
+    const rollShift = this.aeroRollSensitivity * 0.10 * Math.max(-1, Math.min(1, (ayG || 0)));
+    return { Fdrag, FaeroZ: totalFz, FzFront: totalFzFront, FzRear: totalFz - totalFzFront, rollShift };
   }
 }
 /* Presets de barrera lateral. k = rigidez (N/m), dampFactor = fracción del
@@ -4188,7 +4260,7 @@ function stepVehiclePhysics(dt){
         var share = (w.a > 0 ? aero.FzFront : aero.FzRear) / (nW0/2);
         share *= (1 + ((w.b > 0) ? aero.rollShift : -aero.rollShift));
         aeroShare[w.id] = share;
-        FzMap[w.id] = (FzMap[w.id]||0) + share;
+        FzMap[w.id] = Math.max(40, (FzMap[w.id]||0) + share);
       });
     })();
 
@@ -6342,6 +6414,18 @@ function bindVehicleControls(){
   // búsqueda binaria) para que el 0-100/Vmax teóricos ronden cifras públicas
   // típicas de esa clase (método de energía cinética, no un ajuste fino
   // contra un modelo real concreto — eso exigiría datos que no son públicos).
+  /* Piezas aerodinámicas del monoplaza (genéricas, no de un equipo real).
+     clA en m²; cdBase y cdInducedK en m² (Cd·A) y adimensional.
+     balFront: fracción de la carga de la pieza que va al eje delantero. */
+  var F1_AERO_PIECES = [
+    { id:'frontWing',   label:'Ala delantera',   enabled:true, clA:0.40, balFront:0.95, cdBase:0.04, cdInducedK:0.06, yawStallDeg:7,  yawExp:2 },
+    { id:'bargeboards', label:'Bargeboards',     enabled:true, clA:0.06, balFront:0.55, cdBase:0.01, cdInducedK:0.02, yawStallDeg:5,  yawExp:2 },
+    { id:'floor',       label:'Suelo + difusor', enabled:true, clA:0.72, balFront:0.35, cdBase:0.02, cdInducedK:0.04, yawStallDeg:9,  yawExp:2,
+      rhOptimalMm:50, rhWindowMm:35, rhGain:0.40 },
+    { id:'rearWing',    label:'Ala trasera',     enabled:true, clA:0.40, balFront:0.05, cdBase:0.06, cdInducedK:0.12, yawStallDeg:12, yawExp:2 },
+    { id:'beamWing',    label:'Beam wing',       enabled:true, clA:0.02, balFront:0.10, cdBase:0.01, cdInducedK:0.03, yawStallDeg:10, yawExp:2 }
+  ];
+  function cloneAeroPieces(a){ return JSON.parse(JSON.stringify(a || [])); }
   var CAR_CLASS_PRESETS = {
     hatch: { mass:1300, Cd:0.32, area:2.2, downforcePct:60, engineType:'gas_turbo',
               engTmax:335, engRedline:6800, engIdle:850, displacementL:2.0, cylinders:4, turboLagS:0.30 },
@@ -6354,11 +6438,13 @@ function bindVehicleControls(){
     // Inercias y rigidez de suspensión son estimaciones razonables, no datos de equipo.
     f1:    { mass:800, wheelbase:3.40, track:1.60, cgHeight:0.27, frontWeightPct:45,
               Iz:1000, Ix:500, Iy:1100, susK:90000, steerMaxDeg:18, Tbrake:1800,
-              Cd:0.85, area:1.4, downforcePct:330, aeroBalanceFront:42, groundEffectGain:0.50,
+              // Cd 0.71: solo el cuerpo; las piezas aportan ≈0,19 m² de Cd·A aparte (total ≈ 1,18 m², como antes).
+              Cd:0.71, area:1.4, downforcePct:330, aeroBalanceFront:42, groundEffectGain:0.50,
               rimDiameterIn:18, tireWidthMm:305, profilePct:40, tireType:'race',
               gearRatios:[0, 3.20, 2.30, 1.75, 1.40, 1.12, 0.92], finalDrive:3.7,
               engineType:'gas_turbo', engTmax:793, engRedline:12000, engIdle:1500,
-              displacementL:1.6, cylinders:6, turboLagS:0.08 }
+              displacementL:1.6, cylinders:6, turboLagS:0.08,
+              aeroPieces:F1_AERO_PIECES }
   };
   // Valores por defecto que se restauran al salir del monoplaza, para que
   // pasar de F1 a otro preset no deje la batalla, las ruedas o las marchas de F1.
@@ -6366,17 +6452,17 @@ function bindVehicleControls(){
     Iz:1500, Ix:1800, Iy:2200, susK:35000, steerMaxDeg:30, Tbrake:900,
     aeroBalanceFront:40, groundEffectGain:0.30,
     rimDiameterIn:17, tireWidthMm:215, profilePct:45, tireType:'street',
-    gearRatios:[0, 3.50, 2.20, 1.52, 1.15, 0.87, 0.70], finalDrive:3.7 };
+    gearRatios:[0, 3.50, 2.20, 1.52, 1.15, 0.87, 0.70], finalDrive:3.7, aeroPieces:[] };
   function applyCarClassPreset(cls){
     var preset = CAR_CLASS_PRESETS[cls];
     if (!preset) return;
     var wasF1 = (vehicle._bodyClass === 'f1' && cls !== 'f1');
     if (wasF1){
       Object.keys(CAR_CLASS_RESET).forEach(function(k){
-        vehicle[k] = (k === 'gearRatios') ? CAR_CLASS_RESET[k].slice() : CAR_CLASS_RESET[k];
+        vehicle[k] = (k === 'gearRatios') ? CAR_CLASS_RESET[k].slice() : (k === 'aeroPieces') ? cloneAeroPieces(CAR_CLASS_RESET[k]) : CAR_CLASS_RESET[k];
       });
     }
-    Object.keys(preset).forEach(function(k){ vehicle[k] = (k === 'gearRatios') ? preset[k].slice() : preset[k]; });
+    Object.keys(preset).forEach(function(k){ vehicle[k] = (k === 'gearRatios') ? preset[k].slice() : (k === 'aeroPieces') ? cloneAeroPieces(preset[k]) : preset[k]; });
     var geomChanged = (cls === 'f1') || wasF1;
     vehicle._bodyClass = cls; vehicle._bodyClassSig = vehicle.mass + '|' + vehicle.engTmax;
     var syncSrc = wasF1 ? Object.assign({}, CAR_CLASS_RESET, preset) : preset;
@@ -6399,6 +6485,7 @@ function bindVehicleControls(){
     }
     showToast('Preset: ' + cls + ' — Pmáx≈' + Math.round(estimatePeakKw(preset)) + ' kW, ' + preset.mass + ' kg');
     if (typeof rebuildChassisMesh === 'function') rebuildChassisMesh();
+    if (typeof AeroPiecesUI !== 'undefined') AeroPiecesUI.render();
     if (typeof RacingLine !== 'undefined' && TRACK.segs.length) RacingLine.build();   // los colores dependen de μ, masa y carga aero
   }
   // Potencia pico REAL: se evalúa la misma función de par que usa la simulación
@@ -6847,6 +6934,7 @@ function bindVehicleControls(){
     if (vehicle.tireType && typeof applyTireType === 'function') applyTireType(vehicle.tireType, false);
     computeWheelGeometry();
     if (typeof rebuildWheelMeshes3D === 'function') rebuildWheelMeshes3D();
+    if (typeof AeroPiecesUI !== 'undefined') AeroPiecesUI.render();
   }
   window.refreshUIFromVehicle = refreshUIFromVehicle;
   function refreshPresetDropdown(){
@@ -7349,6 +7437,158 @@ var DriveLog = (function(){
 })();
 
 /* ============================================================
+   EDITOR DE PIEZAS AERODINÁMICAS + TÚNEL DE VIENTO
+   El editor solo se muestra si el coche tiene vehicle.aeroPieces. La física
+   lee vehicle.aeroPieces en cada subpaso: los sliders actúan en vivo.
+   El túnel evalúa el modelo de coeficientes (no es CFD) sobre una rejilla de
+   velocidad × yaw × altura al suelo.
+   ============================================================ */
+var AeroPiecesUI = (function(){
+  function esc(t){ return String(t).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function render(){
+    var listEl = document.getElementById('aeroPiecesList');
+    if (!listEl) return;
+    var emptyEl = document.getElementById('aeroPiecesEmpty'), sumEl = document.getElementById('aeroPiecesSummary'), tunnelEl = document.getElementById('aeroTunnelWrap');
+    var pieces = vehicle.aeroPieces;
+    if (!pieces || !pieces.length){
+      emptyEl.style.display = 'block'; listEl.innerHTML = ''; sumEl.style.display = 'none'; tunnelEl.style.display = 'none';
+      return;
+    }
+    emptyEl.style.display = 'none'; tunnelEl.style.display = 'block'; sumEl.style.display = 'block';
+    var html = '';
+    pieces.forEach(function(p, i){
+      var maxClA = Math.max(1, p.clA * 2).toFixed(2);
+      html += '<div style="display:grid;grid-template-columns:22px 1fr 100px 54px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-color);">' +
+        '<input type="checkbox" data-i="' + i + '" id="aeroPiece_' + p.id + '_on"' + (p.enabled ? ' checked' : '') + ' style="width:auto;min-height:0;">' +
+        '<label for="aeroPiece_' + p.id + '_on" style="font-size:12px;font-weight:500;">' + esc(p.label) + '</label>' +
+        '<input type="range" data-i="' + i + '" id="aeroPiece_' + p.id + '_clA" min="0" max="' + maxClA + '" step="0.01" value="' + p.clA + '" style="min-height:0;margin:0;">' +
+        '<span style="font-size:11px;font-family:Menlo,monospace;text-align:right;" id="aeroPiece_' + p.id + '_val">' + p.clA.toFixed(2) + '</span></div>';
+    });
+    listEl.innerHTML = html;
+    listEl.querySelectorAll('input[type=checkbox]').forEach(function(cb){
+      cb.addEventListener('change', function(){ vehicle.aeroPieces[parseInt(this.dataset.i, 10)].enabled = this.checked; updateSummary(); });
+    });
+    listEl.querySelectorAll('input[type=range]').forEach(function(sl){
+      sl.addEventListener('input', function(){
+        var i = parseInt(this.dataset.i, 10), v = parseFloat(this.value);
+        vehicle.aeroPieces[i].clA = v;
+        var el = document.getElementById('aeroPiece_' + vehicle.aeroPieces[i].id + '_val'); if (el) el.textContent = v.toFixed(2);
+        updateSummary();
+      });
+    });
+    updateSummary();
+  }
+  function totals(){
+    var t = { clA: 0, frontClA: 0, cdBase: 0, cdInduced: 0 };
+    (vehicle.aeroPieces || []).forEach(function(p){
+      if (!p.enabled) return;
+      t.clA += p.clA; t.frontClA += p.clA * (p.balFront != null ? p.balFront : 0.5);
+      t.cdBase += p.cdBase || 0; t.cdInduced += (p.cdInducedK || 0) * p.clA * p.clA;
+    });
+    t.balance = t.clA > 0 ? t.frontClA / t.clA * 100 : 0;
+    t.cdA = t.cdBase + t.cdInduced;
+    return t;
+  }
+  function updateSummary(){
+    var el = document.getElementById('aeroPiecesSummary');
+    if (!el || !vehicle.aeroPieces || !vehicle.aeroPieces.length) return;
+    var t = totals(), body = vehicle.Cd * vehicle.area;
+    el.innerHTML = '<b>Cl·A total:</b> ' + t.clA.toFixed(3) + ' m² · <b>Balance frontal:</b> ' + t.balance.toFixed(1) + ' % · <b>Cd·A de piezas:</b> ' + t.cdA.toFixed(3) + ' m²<br>' +
+      '<span style="color:var(--text-secondary);font-size:11px;">Cd·A del cuerpo: ' + body.toFixed(2) + ' m² · Cd·A total (0° yaw): ' + (body + t.cdA).toFixed(2) + ' m² · Cl/Cd: ' + (t.clA / Math.max(1e-6, body + t.cdA)).toFixed(2) + '</span>';
+  }
+  return { render: render, updateSummary: updateSummary, totals: totals };
+})();
+
+var WindTunnel = (function(){
+  var charts = {}, lastData = null;
+  function point(aero, u, w, zS){
+    var r = aero.compute(u, w, zS || 0, 0, 0), q = 0.5 * 1.2 * u * u;
+    return { clA: q > 0 ? r.FaeroZ / q : 0, cdA: q > 0 ? r.Fdrag / q : 0, balance: r.FaeroZ > 1 ? r.FzFront / r.FaeroZ * 100 : 50, Fz: r.FaeroZ, Fdrag: r.Fdrag };
+  }
+  function sweep(opts){
+    opts = opts || {};
+    var speeds = opts.speeds || [50, 80, 110, 140, 170, 200, 230, 260, 300, 340];
+    var yaws = opts.yaws || [-8, -6, -4, -2, 0, 2, 4, 6, 8];
+    var rhs = opts.rhs || [20, 40, 60, 80, 100];
+    var vRefKph = opts.vRefKph || 250, vRef = vRefKph / 3.6;
+    var aero = new AeroModel(vehicle);
+    var d = { vRefKph: vRefKph, speeds: speeds, yaws: yaws, rhs: rhs, speed: { Fz: [], Fdrag: [], clA: [], cdA: [], balance: [] }, yaw: { clA: [], cdA: [], balance: [] }, rideHeight: { clA: [], balance: [] }, polar: [], generatedAt: new Date().toISOString() };
+    speeds.forEach(function(v){ var r = point(aero, v / 3.6, 0, 0);
+      d.speed.Fz.push({ x: v, y: r.Fz / 1000 }); d.speed.Fdrag.push({ x: v, y: r.Fdrag / 1000 });
+      d.speed.clA.push({ x: v, y: r.clA }); d.speed.cdA.push({ x: v, y: r.cdA }); d.speed.balance.push({ x: v, y: r.balance }); });
+    yaws.forEach(function(y){ var r = point(aero, vRef, vRef * Math.tan(y * Math.PI / 180), 0);
+      d.yaw.clA.push({ x: y, y: r.clA }); d.yaw.cdA.push({ x: y, y: r.cdA }); d.yaw.balance.push({ x: y, y: r.balance }); d.polar.push({ x: r.cdA, y: r.clA }); });
+    rhs.forEach(function(rh){ var r = point(aero, vRef, 0, (rh - aero.staticRideHeightMm) / 1000);
+      d.rideHeight.clA.push({ x: rh, y: r.clA }); d.rideHeight.balance.push({ x: rh, y: r.balance }); });
+    return d;
+  }
+  function ds(label, data, color){ return { label: label, data: data, borderColor: color, backgroundColor: color, showLine: true, pointRadius: 2, borderWidth: 2 }; }
+  function opt(xL, yL, yMin, yMax){
+    var g = themeColor('--chart-grid'), t = themeColor('--chart-tick');
+    var o = { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { labels: { color: t, font: { size: 9 } } } },
+      scales: { x: { grid: { color: g }, ticks: { color: t, font: { size: 9 } }, title: { display: true, text: xL, color: t, font: { size: 9 } } },
+                y: { grid: { color: g }, ticks: { color: t, font: { size: 9 } }, title: { display: true, text: yL, color: t, font: { size: 9 } } } } };
+    if (yMin != null) o.scales.y.min = yMin; if (yMax != null) o.scales.y.max = yMax;
+    return o;
+  }
+  function pickX(arr, x){ return arr.filter(function(p){ return p.x === x; })[0]; }
+  function render(data){
+    // El contenedor debe estar visible ANTES de crear las gráficas: con display:none
+    // Chart.js mide 0×0 y se quedan en blanco.
+    document.getElementById('aeroTunnelResults').style.display = 'block';
+    Object.keys(charts).forEach(function(k){ if (charts[k]) charts[k].destroy(); });
+    charts = {};
+    var mk = function(id, cfg){ var c = document.getElementById(id); if (c) charts[id] = new Chart(c, cfg); };
+    mk('tunnelChartSpeed', { type: 'scatter', data: { datasets: [ds('Carga (kN)', data.speed.Fz, '#4ecdc4'), ds('Resistencia (kN)', data.speed.Fdrag, '#ff6b6b')] }, options: opt('km/h', 'kN') });
+    mk('tunnelChartBalance', { type: 'scatter', data: { datasets: [ds('% frontal', data.yaw.balance, '#e8a54b')] }, options: opt('yaw (°)', '% frontal', 0, 100) });
+    mk('tunnelChartPolar', { type: 'scatter', data: { datasets: [ds('yaw −8…+8°', data.polar, '#7c4dff')] }, options: opt('Cd·A (m²)', 'Cl·A (m²)') });
+    mk('tunnelChartRh', { type: 'scatter', data: { datasets: [ds('Cl·A', data.rideHeight.clA, '#4ecdc4')] }, options: opt('altura al suelo (mm)', 'Cl·A (m²)') });
+    var atRef = pickX(data.yaw.clA, 0), cd0 = pickX(data.yaw.cdA, 0);
+    var b0 = pickX(data.yaw.balance, 0), b4 = pickX(data.yaw.balance, 4), b8 = pickX(data.yaw.balance, 8), c8 = pickX(data.yaw.clA, 8);
+    var loss8 = atRef.y > 0 ? (1 - c8.y / atRef.y) * 100 : 0;
+    var bestRh = data.rideHeight.clA.reduce(function(b, p){ return p.y > b.y ? p : b; }, data.rideHeight.clA[0]);
+    document.getElementById('aeroTunnelSummary').innerHTML =
+      '<b>A ' + data.vRefKph + ' km/h, yaw 0°</b> · Cl·A = <b>' + atRef.y.toFixed(3) + ' m²</b> · Cd·A = <b>' + cd0.y.toFixed(3) + ' m²</b> · Cl/Cd = <b>' + (atRef.y / Math.max(1e-6, cd0.y)).toFixed(2) + '</b> · Balance = <b>' + b0.y.toFixed(1) + ' % frontal</b><br>' +
+      '<b>Balance con el yaw:</b> 0° → ' + b0.y.toFixed(1) + ' % · 4° → ' + b4.y.toFixed(1) + ' % · 8° → ' + b8.y.toFixed(1) + ' %<br>' +
+      '<b>Pérdida de carga a 8° de yaw:</b> ' + loss8.toFixed(1) + ' % · <b>Mejor altura al suelo:</b> ' + bestRh.x + ' mm';
+    lastData = data;
+    return data;
+  }
+  function run(){
+    if (!vehicle.aeroPieces || !vehicle.aeroPieces.length){ showToast('El túnel necesita el modelo por piezas (preset Fórmula 1)'); return null; }
+    var data = sweep({}); render(data); showToast('🌬️ Barrido completado'); return data;
+  }
+  function toCSV(){
+    if (!lastData) return '';
+    var L = ['# ApexGrip Pro — barrido de túnel de viento (modelo de coeficientes, no CFD)', '# generado,' + lastData.generatedAt, '# vRef_kph,' + lastData.vRefKph, '',
+      '# Barrido de velocidad (yaw 0)', 'kph,downforce_kN,drag_kN,clA_m2,cdA_m2,balance_front_pct'];
+    lastData.speed.Fz.forEach(function(p, i){ L.push(p.x + ',' + p.y.toFixed(4) + ',' + lastData.speed.Fdrag[i].y.toFixed(4) + ',' + lastData.speed.clA[i].y.toFixed(4) + ',' + lastData.speed.cdA[i].y.toFixed(4) + ',' + lastData.speed.balance[i].y.toFixed(2)); });
+    L.push('', '# Barrido de yaw @ ' + lastData.vRefKph + ' kph', 'yaw_deg,clA_m2,cdA_m2,balance_front_pct');
+    lastData.yaw.clA.forEach(function(p, i){ L.push(p.x + ',' + p.y.toFixed(4) + ',' + lastData.yaw.cdA[i].y.toFixed(4) + ',' + lastData.yaw.balance[i].y.toFixed(2)); });
+    L.push('', '# Barrido de altura al suelo @ ' + lastData.vRefKph + ' kph, yaw 0', 'rh_mm,clA_m2,balance_front_pct');
+    lastData.rideHeight.clA.forEach(function(p, i){ L.push(p.x + ',' + p.y.toFixed(4) + ',' + lastData.rideHeight.balance[i].y.toFixed(2)); });
+    return L.join('\n') + '\n';
+  }
+  function download(){
+    var csv = toCSV();
+    if (!csv){ showToast('Ejecuta el túnel primero'); return; }
+    try {
+      var url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+      var a = document.createElement('a'); a.href = url; a.download = 'apexgrip_tunel_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.csv';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+      showToast('📥 CSV del túnel exportado');
+    } catch(e){ showToast('No se pudo exportar el CSV'); }
+  }
+  function bind(){
+    var b = document.getElementById('btnAeroTunnel'); if (b) b.addEventListener('click', run);
+    var c = document.getElementById('btnAeroTunnelCsv'); if (c) c.addEventListener('click', download);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  return { run: run, sweep: sweep, render: render, toCSV: toCSV, download: download, point: point };
+})();
+
+/* ============================================================
    BUCLE PRINCIPAL
    ============================================================ */
 var frameCount = 0, lastFpsT = performance.now();
@@ -7456,6 +7696,7 @@ function init(){
     console.error('[init] bindVehicleControls falló a medias — parte de la UI puede no responder:', e);
     showToast('⚠️ Algo no se enganchó bien en los controles — mira la consola');
   }
+  if (typeof AeroPiecesUI !== 'undefined') AeroPiecesUI.render();
   runTransientDemo();
   showToast('⚙️ ApexGrip Pro listo');
   requestAnimationFrame(loop);
@@ -9932,7 +10173,7 @@ function runSelfTest(){
   // ---- 25b. Preset Fórmula 1: se aplica entero y al salir se restaura lo que cambió ----
   try {
     var f1Keys = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
-      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'aeroBalanceFront','groundEffectGain','aeroPieces','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
       'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig'];
     var svF = {}; f1Keys.forEach(function(k){ svF[k] = vehicle[k]; });
     var svGears = vehicle.gearRatios.slice(), svNW = vehicle.numWheels;
@@ -9970,7 +10211,7 @@ function runSelfTest(){
   // ---- 25d. Salida desde parado con un coche potente: el control de tracción mantiene la rueda cerca del límite ----
   try {
     var keysL = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
-      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'aeroBalanceFront','groundEffectGain','aeroPieces','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
       'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig','gearMode','tcsOn','absOn'];
     var svL = {}; keysL.forEach(function(k){ svL[k] = vehicle[k]; });
     var svLG = vehicle.gearRatios.slice(), svRun = vehicleRunning, svTh = touchControls.throttle;
@@ -10006,7 +10247,7 @@ function runSelfTest(){
   // ---- 25f. Curva rápida: la carga aero llega al neumático y el giro estacionario es estable ----
   try {
     var keysF = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
-      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'aeroBalanceFront','groundEffectGain','aeroPieces','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
       'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig','gearMode','tcsOn','absOn','collisionsOn','rearAlphaFactor'];
     var svF = {}; keysF.forEach(function(k){ svF[k] = vehicle[k]; });
     var svFG = vehicle.gearRatios.slice(), svFRun = vehicleRunning, svFTh = touchControls.throttle, svFSt = touchControls.steer, svTrk = TRACK;
@@ -10123,6 +10364,59 @@ function runSelfTest(){
     vehicleRunning = svRunH;
   } catch(e){ check('LKA / lateral sin excepción', false, e.message); }
 
+  // ---- 25i. Aerodinámica por piezas y túnel de viento ----
+  try {
+    var keysA = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
+      'aeroBalanceFront','groundEffectGain','aeroPieces','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig','gearMode'];
+    var svA = {}; keysA.forEach(function(k){ svA[k] = vehicle[k]; });
+    var svAG = vehicle.gearRatios.slice();
+    // Sin piezas: ruta agregada idéntica a la fórmula original
+    document.getElementById('btnCarHatch').click();
+    var legacy = new AeroModel(vehicle), rL = legacy.compute(55, 0, 0, 0, 0);
+    var qL = 0.5*1.2*55*55;
+    check('Aero sin piezas: ruta agregada (carga = q·A·0,35·df, resistencia = q·Cd·A)',
+      !legacy.pieces && Math.abs(rL.FaeroZ - qL*vehicle.area*0.35*vehicle.downforcePct/100) < 1e-6 && Math.abs(rL.Fdrag - qL*vehicle.Cd*vehicle.area) < 1e-6);
+    check('Aero: marcha atrás nunca da carga negativa y la resistencia se opone al movimiento',
+      (function(){ var r = legacy.compute(-50, 0, 0, 0, 0); return r.FaeroZ >= 0 && r.Fdrag < 0; })());
+    document.getElementById('btnCarF1').click();
+    var pcs = vehicle.aeroPieces, totA = AeroPiecesUI.totals();
+    check('Preset F1: 5 piezas, Cl·A ≈ 1,6 m², balance frontal 40–46 % (' + totA.clA.toFixed(2) + ' m², ' + totA.balance.toFixed(1) + ' %)',
+      pcs.length === 5 && Math.abs(totA.clA - 1.6) < 0.06 && totA.balance > 40 && totA.balance < 46);
+    var aF = new AeroModel(vehicle), r0 = aF.compute(250/3.6, 0, 0, 0, 0);
+    var r8 = aF.compute(250/3.6, 250/3.6*Math.tan(8*Math.PI/180), 0, 0, 0);
+    var lossY = 1 - r8.FaeroZ / r0.FaeroZ;
+    check('Aero por piezas: a 8° de yaw pierde carga (' + (lossY*100).toFixed(0) + ' %, entre 15 y 85 %) y nunca es negativa', lossY > 0.15 && lossY < 0.85 && r8.FaeroZ >= 0);
+    var fl = function(zS){ return aF.compute(250/3.6, 0, zS, 0, 0).FaeroZ; };
+    check('Aero por piezas: el suelo rinde más a la altura óptima (50 mm) que muy bajo o muy alto',
+      fl(-0.010) > fl(-0.040) && fl(-0.010) > fl(0.040));
+    var dBefore = r0.Fdrag, fzBefore = r0.FaeroZ;
+    pcs[3].clA = 0.80;   // ala trasera
+    var r1 = new AeroModel(vehicle).compute(250/3.6, 0, 0, 0, 0);
+    check('Aero por piezas: más ala trasera → más carga, más resistencia y balance más trasero',
+      r1.FaeroZ > fzBefore && r1.Fdrag > dBefore && (r1.FzFront / r1.FaeroZ) < (r0.FzFront / r0.FaeroZ));
+    document.getElementById('btnCarSport').click();
+    check('Salir del F1 vacía las piezas y el panel vuelve al modo agregado',
+      vehicle.aeroPieces.length === 0 && document.getElementById('aeroPiecesEmpty').style.display === 'block');
+    document.getElementById('btnCarF1').click();
+    check('Volver a F1 restaura las piezas de fábrica (copia profunda: ala trasera ' + vehicle.aeroPieces[3].clA.toFixed(2) + ')',
+      Math.abs(vehicle.aeroPieces[3].clA - 0.40) < 1e-9 && document.querySelectorAll('#aeroPiecesList input[type=range]').length === 5);
+    // Túnel
+    var sw = WindTunnel.sweep({});
+    var incr = sw.speed.Fz.every(function(p, i, a){ return i === 0 || p.y > a[i-1].y; });
+    check('Túnel: 10 velocidades × 9 yaws × 5 alturas, carga creciente con la velocidad',
+      sw.speed.Fz.length === 10 && sw.yaw.clA.length === 9 && sw.rideHeight.clA.length === 5 && incr);
+    var csvA = '';
+    try { WindTunnel.run(); csvA = WindTunnel.toCSV(); } catch(eT){ csvA = ''; }
+    check('Túnel: el CSV tiene los tres barridos con cabecera',
+      csvA.indexOf('kph,downforce_kN') > 0 && csvA.indexOf('yaw_deg,clA_m2') > 0 && csvA.indexOf('rh_mm,clA_m2') > 0);
+    keysA.forEach(function(k){ vehicle[k] = svA[k]; });
+    vehicle.gearRatios = svAG;
+    applyTireType(vehicle.tireType, false); computeWheelGeometry(); rebuildWheelStructures();
+    resetVehicle({ silent: true });
+    AeroPiecesUI.render();
+  } catch(e){ check('Aero por piezas / túnel sin excepción', false, e.message); }
+
   // ---- 25e. Inicio rápido: aplica coche, circuito y clima con los controles de siempre ----
   try {
     var qsHost = document.getElementById('quickStart');
@@ -10133,7 +10427,7 @@ function runSelfTest(){
     check('Inicio rápido: neumático según clima (seco=el del coche, mojado=lluvia, nieve/hielo=invierno)',
       QuickStart.tireFor('f1','dry') === 'race' && QuickStart.tireFor('hatch','dry') === 'street' && QuickStart.tireFor('hyper','wet') === 'rain' && QuickStart.tireFor('hatch','snow') === 'winter' && QuickStart.tireFor('f1','ice') === 'winter');
     var keysQ = ['mass','wheelbase','track','cgHeight','frontWeightPct','Iz','Ix','Iy','susK','steerMaxDeg','Tbrake','Cd','area','downforcePct',
-      'aeroBalanceFront','groundEffectGain','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
+      'aeroBalanceFront','groundEffectGain','aeroPieces','rimDiameterIn','tireWidthMm','profilePct','tireType','finalDrive','engineType','engTmax','engRedline','engIdle',
       'displacementL','cylinders','turboLagS','_bodyClass','_bodyClassSig','surface'];
     var svQ = {}; keysQ.forEach(function(k){ svQ[k] = vehicle[k]; });
     var svQG = vehicle.gearRatios.slice();
